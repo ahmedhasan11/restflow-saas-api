@@ -18,5 +18,7 @@ public class OtpVerificationConfiguration : IEntityTypeConfiguration<OtpVerifica
             .WithMany(u => u.OtpVerifications)
             .HasForeignKey(o => o.UserId)
             .OnDelete(DeleteBehavior.Cascade);
+            
+        builder.HasQueryFilter(o => o.DeletedAt == null);
     }
 }

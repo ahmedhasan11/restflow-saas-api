@@ -2,7 +2,7 @@ using System;
 
 namespace RestflowAPI.Entities;
 
-public class RefreshToken
+public class RefreshToken : BaseEntity
 {
     public Guid Id { get; set; }
     public Guid UserId { get; set; }

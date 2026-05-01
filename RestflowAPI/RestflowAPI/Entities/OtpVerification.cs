@@ -3,7 +3,7 @@ using RestflowAPI.Enums;
 
 namespace RestflowAPI.Entities;
 
-public class OtpVerification
+public class OtpVerification : BaseEntity
 {
     public Guid Id { get; set; }
     public Guid UserId { get; set; }
@@ -12,7 +12,6 @@ public class OtpVerification
     public DateTime ExpiresAt { get; set; }
     public bool IsUsed { get; set; }
     public int ResendCount { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation Properties
     public User User { get; set; } = null!;
