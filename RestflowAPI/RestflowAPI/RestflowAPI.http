@@ -1,0 +1,6 @@
+@RestflowAPI_HostAddress = http://localhost:5008
+
+GET {{RestflowAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
