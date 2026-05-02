@@ -1,5 +1,7 @@
 
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using RestflowAPI.Data.UnitOfWork;
 using RestflowAPI.ServiceInterfaces.Tenants;
 using RestflowAPI.Services.Tenants;
 
@@ -13,10 +15,23 @@ namespace RestflowAPI
 			// Add Tenant Services
 			builder.Services.AddHttpContextAccessor();
 			builder.Services.AddScoped<ICurrentTenantService,CurrentTenantService>();
+            builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+            
 			// Add services to the container.
 			// Configure Entity Framework Core with SQL Server
 			builder.Services.AddDbContext<RestflowAPI.Data.ApplicationDbContext>(options =>
 				options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+			// Add Identity
+			builder.Services.AddIdentity<RestflowAPI.Entities.ApplicationUser, RestflowAPI.Entities.ApplicationRole>(options => {
+				options.Password.RequiredLength = 5;
+				options.Password.RequireUppercase = false;
+				options.Password.RequireNonAlphanumeric = false;//symbols
+				options.Password.RequireLowercase = true;
+				options.Password.RequireDigit = false;
+				//options.Password.RequiredUniqueChars = 3;
+			})
+			.AddEntityFrameworkStores<RestflowAPI.Data.ApplicationDbContext>()
+			.AddDefaultTokenProviders();
 			builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();

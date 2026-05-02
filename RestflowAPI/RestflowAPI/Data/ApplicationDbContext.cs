@@ -1,11 +1,12 @@
-using System.Reflection;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using RestflowAPI.Entities;
 using RestflowAPI.ServiceInterfaces.Tenants;
+using System.Reflection;
 
 namespace RestflowAPI.Data;
 
-public class ApplicationDbContext : DbContext
+public class ApplicationDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, Guid>
 {
     private readonly ICurrentTenantService _tenantService;
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, ICurrentTenantService tenantService) : base(options)
@@ -14,7 +15,6 @@ public class ApplicationDbContext : DbContext
     }
 
     public DbSet<Tenant> Tenants => Set<Tenant>();
-    public DbSet<User> Users => Set<User>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<OtpVerification> OtpVerifications => Set<OtpVerification>();
     public DbSet<Customer> Customers => Set<Customer>();
@@ -25,6 +25,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Product> Products => Set<Product>();
     public DbSet<ProductIngredient> ProductIngredients => Set<ProductIngredient>();
     public DbSet<PlatformSetting> PlatformSettings => Set<PlatformSetting>();
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -40,12 +41,13 @@ public class ApplicationDbContext : DbContext
 		modelBuilder.Entity<Product>().HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantService.TenantId);
 		modelBuilder.Entity<ProductIngredient>().HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantService.TenantId);
 		modelBuilder.Entity<StockMovement>().HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantService.TenantId);
+		modelBuilder.Entity<ApplicationUser>().HasQueryFilter(e => e.DeletedAt == null && (e.TenantId == _tenantService.TenantId || e.TenantId == null));
 	}
 	public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
 	{
 		var now = DateTime.UtcNow;
 
-		foreach (var entry in ChangeTracker.Entries<BaseEntity>())
+		foreach (var entry in ChangeTracker.Entries<IAuditable>())
 		{
 			switch (entry.State)
 			{
@@ -55,6 +57,11 @@ public class ApplicationDbContext : DbContext
 					if (entry.Entity is IMustHaveTenant tenantEntity && tenantEntity.TenantId == Guid.Empty && _tenantService.TenantId.HasValue)
 					{
 						tenantEntity.TenantId = _tenantService.TenantId.Value;
+					}             
+					// For ApplicationUser, which might have a null TenantId (Super Admin)
+					if (entry.Entity is ApplicationUser user && user.TenantId == null && _tenantService.TenantId.HasValue)
+					{
+						user.TenantId = _tenantService.TenantId.Value;
 					}
 					break;
 

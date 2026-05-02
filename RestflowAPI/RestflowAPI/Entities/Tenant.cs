@@ -18,7 +18,7 @@ public class Tenant : BaseEntity
     public string Currency { get; set; } = "USD";
 
     // Navigation Properties
-    public ICollection<User> Users { get; set; } = new List<User>();
+    public ICollection<ApplicationUser> Users { get; set; } = new List<ApplicationUser>();
     public ICollection<Customer> Customers { get; set; } = new List<Customer>();
     public ICollection<InventoryItem> InventoryItems { get; set; } = new List<InventoryItem>();
     public ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();
