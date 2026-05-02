@@ -2,7 +2,7 @@ using System;
 
 namespace RestflowAPI.Entities;
 
-public abstract class BaseEntity
+public abstract class BaseEntity: IAuditable
 {
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }

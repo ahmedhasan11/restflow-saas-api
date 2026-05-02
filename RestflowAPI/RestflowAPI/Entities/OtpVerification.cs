@@ -14,5 +14,5 @@ public class OtpVerification : BaseEntity
     public int ResendCount { get; set; }
 
     // Navigation Properties
-    public User User { get; set; } = null!;
+    public ApplicationUser User { get; set; } = null!;
 }
