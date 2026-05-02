@@ -1,5 +1,7 @@
 
 using Microsoft.EntityFrameworkCore;
+using RestflowAPI.ServiceInterfaces.Tenants;
+using RestflowAPI.Services.Tenants;
 
 namespace RestflowAPI
 {
@@ -8,7 +10,9 @@ namespace RestflowAPI
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
-
+			// Add Tenant Services
+			builder.Services.AddHttpContextAccessor();
+			builder.Services.AddScoped<ICurrentTenantService,CurrentTenantService>();
 			// Add services to the container.
 			// Configure Entity Framework Core with SQL Server
 			builder.Services.AddDbContext<RestflowAPI.Data.ApplicationDbContext>(options =>
@@ -29,10 +33,12 @@ namespace RestflowAPI
 
             app.UseHttpsRedirection();
 
-            app.UseAuthorization();
+			app.UseAuthentication();
+			app.UseAuthorization();
 
-
-            app.MapControllers();
+			// Add our custom tenant validation middleware
+			app.UseMiddleware<RestflowAPI.Middlewares.TenantValidationMiddleware>();
+			app.MapControllers();
 
             app.Run();
         }
