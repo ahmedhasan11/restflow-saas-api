@@ -18,7 +18,15 @@ namespace RestflowAPI.Services.Tenants
 				var context = _httpContextAccessor.HttpContext;
 				if (context == null) return null;
 
-				// Try from header first
+				// 1. ALWAYS prioritize the JWT Claim if the user is authenticated.
+				// This prevents a logged-in user from spoofing another tenant via headers.
+				var claim = context.User.FindFirst("TenantId")?.Value;
+				if (claim != null && Guid.TryParse(claim, out var tenantIdFromClaim))
+				{
+					return tenantIdFromClaim;
+				}
+
+				// 2. Fallback to header ONLY if there is no authenticated user (e.g., Public Endpoints)
 				if (context.Request.Headers.TryGetValue("x-tenant-id", out var tenantHeader))
 				{
 					if (Guid.TryParse(tenantHeader.ToString(), out var tenantId))
@@ -27,12 +35,7 @@ namespace RestflowAPI.Services.Tenants
 					}
 				}
 
-				// Optionally try from User Claims (JWT) if authenticated
-				var claim = context.User.FindFirst("TenantId")?.Value;
-				if (claim != null && Guid.TryParse(claim, out var tenantIdFromClaim))
-				{
-					return tenantIdFromClaim;
-				}
+
 
 				return null;
 			}
