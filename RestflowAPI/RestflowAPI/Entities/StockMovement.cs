@@ -1,9 +1,10 @@
-using System;
 using RestflowAPI.Enums;
+using RestflowAPI.ServiceInterfaces.Tenants;
+using System;
 
 namespace RestflowAPI.Entities;
 
-public class StockMovement : BaseEntity
+public class StockMovement : BaseEntity, IMustHaveTenant
 {
     public Guid Id { get; set; }
     public Guid TenantId { get; set; }

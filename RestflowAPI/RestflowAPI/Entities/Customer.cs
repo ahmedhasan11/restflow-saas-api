@@ -1,8 +1,9 @@
 using System;
+using RestflowAPI.ServiceInterfaces.Tenants;
 
 namespace RestflowAPI.Entities;
 
-public class Customer : BaseEntity
+public class Customer : BaseEntity, IMustHaveTenant
 {
     public Guid Id { get; set; }
     public Guid TenantId { get; set; }

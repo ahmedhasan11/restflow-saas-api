@@ -1,8 +1,9 @@
+using RestflowAPI.ServiceInterfaces.Tenants;
 using System;
 
 namespace RestflowAPI.Entities;
 
-public class ProductIngredient : BaseEntity
+public class ProductIngredient : BaseEntity, IMustHaveTenant
 {
     public Guid Id { get; set; }
     public Guid TenantId { get; set; }
