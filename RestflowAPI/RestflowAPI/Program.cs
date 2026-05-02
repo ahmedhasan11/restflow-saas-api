@@ -46,6 +46,9 @@ namespace RestflowAPI
 				await RestflowAPI.Data.IdentityDbInitializer.SeedRolesAsync(roleManager);
 			}
 			// Configure the HTTP request pipeline.
+			app.UseMiddleware<RestflowAPI.Middlewares.GlobalExceptionMiddleware>();
+
+			// Configure the HTTP request pipeline.
 			if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
