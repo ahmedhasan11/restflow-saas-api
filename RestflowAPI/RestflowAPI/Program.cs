@@ -9,7 +9,7 @@ namespace RestflowAPI
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 			// Add Tenant Services
@@ -39,8 +39,14 @@ namespace RestflowAPI
 
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
+			// Seed Roles
+			using (var scope = app.Services.CreateScope())
+			{
+				var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<RestflowAPI.Entities.ApplicationRole>>();
+				await RestflowAPI.Data.IdentityDbInitializer.SeedRolesAsync(roleManager);
+			}
+			// Configure the HTTP request pipeline.
+			if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
@@ -55,7 +61,7 @@ namespace RestflowAPI
 			app.UseMiddleware<RestflowAPI.Middlewares.TenantValidationMiddleware>();
 			app.MapControllers();
 
-            app.Run();
+            await app.RunAsync();
         }
     }
 }
