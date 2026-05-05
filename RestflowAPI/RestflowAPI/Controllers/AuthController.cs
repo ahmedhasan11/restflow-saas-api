@@ -77,5 +77,18 @@ namespace RestflowAPI.Controllers
 
 			return Ok(result);
 		}
+
+		[HttpPost("forgot-password")]
+		public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequestDto request, CancellationToken cancellationToken)
+		{
+			var result = await _authService.ForgotPasswordAsync(request, cancellationToken);
+
+			if (!result.IsSuccess)
+			{
+				return BadRequest(result);
+			}
+
+			return Ok(result);
+		}
 	}
 }

@@ -22,6 +22,7 @@ namespace RestflowAPI.Services.Auth
 		private readonly IValidator<ResendOtpRequestDto> _resendOtpValidator;
 		private readonly IValidator<LoginRequestDto> _loginValidator;
 		private readonly IValidator<RefreshTokenRequestDto> _refreshTokenValidator;
+		private readonly IValidator<ForgotPasswordRequestDto> _forgotPasswordValidator;
 		private readonly ILogger<AuthService> _logger;
 		private readonly IUnitOfWork _unitOfWork;
 		public AuthService(IAuthRepository authRepository, ILogger<AuthService> logger, 
@@ -29,7 +30,7 @@ namespace RestflowAPI.Services.Auth
 			IValidator<VerifyOtpRequestDto> verifyOtpValidator, IValidator<ResendOtpRequestDto>
 			resendOtpValidator, IValidator<LoginRequestDto> loginValidator, IRefreshTokenService refreshTokenService
 			, IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository
-			, IValidator<RefreshTokenRequestDto> refreshTokenValidator)
+			, IValidator<RefreshTokenRequestDto> refreshTokenValidator, IValidator<ForgotPasswordRequestDto> forgotPasswordValidator)
 		{
 			_authRepository = authRepository;
 			_logger = logger;
@@ -42,6 +43,7 @@ namespace RestflowAPI.Services.Auth
 			_jwtService = jwtService;
 			_refreshTokenRepository = refreshTokenRepository;
 			_refreshTokenValidator = refreshTokenValidator;
+			_forgotPasswordValidator = forgotPasswordValidator;
 		}
 		public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request, CancellationToken cancellationToken)
 		{
@@ -307,6 +309,32 @@ namespace RestflowAPI.Services.Auth
 
 			return AuthResponseDto.Success("Session refreshed successfully.", jwtResult.Token, newRawRefreshToken, jwtResult.ExpiresAt);
 
+		}
+
+		public async Task<AuthResponseDto> ForgotPasswordAsync(ForgotPasswordRequestDto request, CancellationToken cancellationToken)
+		{
+			var result = await _forgotPasswordValidator.ValidateAsync(request, cancellationToken);
+			if (!result.IsValid)
+			{
+				return AuthResponseDto.Failure(result.Errors.Select(e => e.ErrorMessage));
+			}
+			var user = await _authRepository.FindByIdentifierAsync(request.Identifier, cancellationToken);
+			if (user == null)
+			{
+				return AuthResponseDto.Failure("User not found.");
+			}
+
+			if (user.Status != UserStatus.Active)
+			{
+				return AuthResponseDto.Failure("User account is inactive.");
+			}
+
+			ChannelType channel = request.Identifier.Contains("@") ? ChannelType.Email : ChannelType.Phone;
+
+			await _authRepository.InvalidateOldOtpsAsync(user.Id, channel, cancellationToken);
+			await GenerateAndSaveOtp(user.Id, channel, cancellationToken);
+			await _unitOfWork.SaveChangesAsync(cancellationToken);
+			return AuthResponseDto.Success("A reset code has been sent to your chosen channel.");
 		}
 	}
 }

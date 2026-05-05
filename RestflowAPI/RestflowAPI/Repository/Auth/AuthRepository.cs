@@ -84,5 +84,11 @@ namespace RestflowAPI.Repository.Auth
 				.Include(u => u.Tenant)
 				.FirstOrDefaultAsync(u => (u.Email == identifier || u.PhoneNumber == identifier), cancellationToken);
 		}
+
+		public async Task<IdentityResult> ResetPasswordAsync(ApplicationUser user, string newPassword)
+		{
+			await _userManager.RemovePasswordAsync(user);
+			return await _userManager.AddPasswordAsync(user, newPassword);
+		}
 	}
 }

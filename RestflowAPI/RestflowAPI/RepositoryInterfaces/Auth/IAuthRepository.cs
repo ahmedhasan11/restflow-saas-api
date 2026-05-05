@@ -19,5 +19,7 @@ namespace RestflowAPI.RepositoryInterfaces.Auth
 		Task<OtpVerification?> GetLatestOtpAsync(Guid userId, ChannelType channel, CancellationToken cancellationToken);
 		Task<bool> CheckPasswordAsync(ApplicationUser user , string password);
 		Task<IEnumerable<string>> GetUserRolesAsync(ApplicationUser user);
+		Task<IdentityResult> ResetPasswordAsync(ApplicationUser user, string newPassword);
 	}
+}
 }
