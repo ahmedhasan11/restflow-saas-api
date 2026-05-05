@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using RestflowAPI.Entities;
+using RestflowAPI.Enums;
 
 namespace RestflowAPI.RepositoryInterfaces.Auth
 {
@@ -12,5 +13,9 @@ namespace RestflowAPI.RepositoryInterfaces.Auth
 		Task SaveOtpAsync(OtpVerification otp, CancellationToken cancellationToken);
 
 		// Future: Task<OtpVerification?> GetValidOtpAsync(Guid userId, ChannelType channel, string codeHash);
+		// New methods for verification
+		Task<OtpVerification?> GetLatestOtpAsync(Guid userId, ChannelType channel, CancellationToken cancellationToken);
+		Task UpdateOtpStatusAsync(OtpVerification otp, CancellationToken cancellationToken);
+		Task<IdentityResult> UpdateUserAsync(ApplicationUser user);
 	}
 }

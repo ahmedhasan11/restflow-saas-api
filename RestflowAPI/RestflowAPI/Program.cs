@@ -39,7 +39,11 @@ namespace RestflowAPI
 			})
 			.AddEntityFrameworkStores<RestflowAPI.Data.ApplicationDbContext>()
 			.AddDefaultTokenProviders();
-			builder.Services.AddControllers();
+			builder.Services.AddControllers()
+				.AddJsonOptions(options => {
+					options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+					options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+				});
 			builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 			// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 			builder.Services.AddEndpointsApiExplorer();

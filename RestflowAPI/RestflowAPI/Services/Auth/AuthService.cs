@@ -1,5 +1,6 @@
 ﻿using FluentValidation;
 using Microsoft.AspNetCore.Identity.Data;
+using RestflowAPI.Data.UnitOfWork;
 using RestflowAPI.DTOs.Auth;
 using RestflowAPI.Entities;
 using RestflowAPI.Enums;
@@ -14,12 +15,16 @@ namespace RestflowAPI.Services.Auth
 	{
 		private readonly IAuthRepository _authRepository;
 		private readonly IValidator<RegisterRequestDto> _registerValidator;
+		private readonly IValidator<VerifyOtpRequestDto> _verifyOtpValidator;
 		private readonly ILogger<AuthService> _logger;
-		public AuthService(IAuthRepository authRepository, ILogger<AuthService> logger, IValidator<RegisterRequestDto> registerValidator)
+		private readonly IUnitOfWork _unitOfWork;
+		public AuthService(IAuthRepository authRepository, ILogger<AuthService> logger, IValidator<RegisterRequestDto> registerValidator, IUnitOfWork unitOfWork, IValidator<VerifyOtpRequestDto> verifyOtpValidator)
 		{
 			_authRepository = authRepository;
 			_logger = logger;
 			_registerValidator = registerValidator;
+			_unitOfWork = unitOfWork;
+			_verifyOtpValidator = verifyOtpValidator;
 		}
 		public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request, CancellationToken cancellationToken)
 		{
@@ -72,9 +77,9 @@ namespace RestflowAPI.Services.Auth
 			//OTP generation and saving would go here in the future
 			await GenerateAndSaveOtp(user.Id, ChannelType.Email, cancellationToken);
 			await GenerateAndSaveOtp(user.Id, ChannelType.Phone, cancellationToken);
-			return AuthResponseDto.Success("User registered successfully.");
+			await _unitOfWork.SaveChangesAsync(cancellationToken);
+			return AuthResponseDto.Success("Registration successful. Please verify your email and phone.");
 		}
-
 		private async Task GenerateAndSaveOtp(Guid userId , ChannelType channel , CancellationToken cancellationToken)
 		{
 			var code = new Random().Next(100000, 999999).ToString(); // Simple 6-digit OTP generation
@@ -97,6 +102,57 @@ namespace RestflowAPI.Services.Auth
 			var bytes = Encoding.UTF8.GetBytes(code);
 			var hash = sha256.ComputeHash(bytes);
 			return Convert.ToBase64String(hash);
+		}
+
+		public async Task<AuthResponseDto> VerifyOtpAsync(VerifyOtpRequestDto request, CancellationToken cancellationToken)
+		{
+			var result = await _verifyOtpValidator.ValidateAsync(request, cancellationToken);	
+			if (!result.IsValid)
+			{
+				return AuthResponseDto.Failure(result.Errors.Select(e => e.ErrorMessage));
+			}
+			var user = await _authRepository.FindByEmailAsync(request.Email, cancellationToken);
+			if (user==null)
+			{
+				return AuthResponseDto.Failure("User not found.");
+			}
+			var otp = await _authRepository.GetLatestOtpAsync(user.Id, request.Channel, cancellationToken);
+			if (otp == null)
+			{
+				return AuthResponseDto.Failure("No OTP found for the specified channel.");
+			}
+			if (otp.OtpCodeHash != HashOtp(request.Code))
+			{
+				return AuthResponseDto.Failure("Invalid OTP code.");
+			}
+			if (otp.ExpiresAt < DateTime.UtcNow)
+			{
+				return AuthResponseDto.Failure("OTP has expired.");
+			}
+			if (otp.ChannelType==ChannelType.Email)
+			{
+				user.EmailConfirmed = true;
+			}
+			else
+			{
+				user.PhoneNumberConfirmed = true;
+			}
+
+			otp.IsUsed = true;
+			await _authRepository.UpdateOtpStatusAsync(otp, cancellationToken);
+			if (user.EmailConfirmed && user.PhoneNumberConfirmed)
+			{
+				user.Status = UserStatus.Active;
+			}
+			var updateResult = await _authRepository.UpdateUserAsync(user);
+			if (!updateResult.Succeeded)
+			{
+				return AuthResponseDto.Failure(updateResult.Errors.Select(e => e.Description));
+			}
+			await _unitOfWork.SaveChangesAsync(cancellationToken);
+			var message = request.Channel == ChannelType.Email ? "Email verified." : "Phone verified.";
+			if (user.Status == UserStatus.Active) message += " Account is now active.";
+			return AuthResponseDto.Success(message, "OTP verified successfully.");
 		}
 	}
 }

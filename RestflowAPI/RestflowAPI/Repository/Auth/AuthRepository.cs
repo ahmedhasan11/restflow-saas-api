@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using RestflowAPI.Data;
 using RestflowAPI.Entities;
+using RestflowAPI.Enums;
 using RestflowAPI.RepositoryInterfaces.Auth;
 using System.Threading;
 
@@ -42,10 +43,27 @@ namespace RestflowAPI.Repository.Auth
 			return await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == phone, cancellationToken);
 		}
 
+		public async Task<OtpVerification?> GetLatestOtpAsync(Guid userId, ChannelType channel, CancellationToken cancellationToken)
+		{
+			return await _context.Set<OtpVerification>()
+				.Where(otp => otp.UserId == userId && otp.ChannelType == channel)
+				.OrderByDescending(otp => otp.CreatedAt)
+				.FirstOrDefaultAsync(cancellationToken);
+		}
+
 		public async Task SaveOtpAsync(OtpVerification otp, CancellationToken cancellationToken)
 		{
 			await _context.Set<OtpVerification>().AddAsync(otp, cancellationToken);
-			await _context.SaveChangesAsync(cancellationToken);
+		}
+
+		public async Task UpdateOtpStatusAsync(OtpVerification otp, CancellationToken cancellationToken)
+		{
+			 _context.Set<OtpVerification>().Update(otp);
+		}
+
+		public async Task<IdentityResult> UpdateUserAsync(ApplicationUser user)
+		{
+			return await _userManager.UpdateAsync(user);
 		}
 	}
 }
