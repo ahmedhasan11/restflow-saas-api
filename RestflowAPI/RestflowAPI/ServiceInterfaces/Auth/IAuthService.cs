@@ -17,5 +17,6 @@ namespace RestflowAPI.ServiceInterfaces.Auth
 		Task<AuthResponseDto> ForgotPasswordAsync(ForgotPasswordRequestDto request, CancellationToken cancellationToken);
 
 		Task<AuthResponseDto> ResetPasswordAsync(ResetPasswordRequestDto request, CancellationToken cancellationToken);
+
 	}
 }

@@ -6,5 +6,7 @@ namespace RestflowAPI.RepositoryInterfaces.Auth
 	{
 		Task SaveRefreshTokenAsync(RefreshToken refreshToken, CancellationToken cancellationToken);
 		Task<RefreshToken?> GetRefreshTokenAsync(string tokenHash, CancellationToken cancellationToken);
+
+		Task RevokeAllUserRefreshTokensAsync(Guid userId, CancellationToken cancellationToken);
 	}
 }

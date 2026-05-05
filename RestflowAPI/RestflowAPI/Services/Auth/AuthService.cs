@@ -313,7 +313,6 @@ namespace RestflowAPI.Services.Auth
 			return AuthResponseDto.Success("Session refreshed successfully.", jwtResult.Token, newRawRefreshToken, jwtResult.ExpiresAt);
 
 		}
-
 		public async Task<AuthResponseDto> ForgotPasswordAsync(ForgotPasswordRequestDto request, CancellationToken cancellationToken)
 		{
 			var result = await _forgotPasswordValidator.ValidateAsync(request, cancellationToken);
@@ -339,7 +338,6 @@ namespace RestflowAPI.Services.Auth
 			await _unitOfWork.SaveChangesAsync(cancellationToken);
 			return AuthResponseDto.Success("A reset code has been sent to your chosen channel.");
 		}
-
 		public async Task<AuthResponseDto> ResetPasswordAsync(ResetPasswordRequestDto request, CancellationToken cancellationToken)
 		{
 			var result = await _resetPasswordValidator.ValidateAsync(request, cancellationToken);
@@ -374,6 +372,9 @@ namespace RestflowAPI.Services.Auth
 			}
 
 			otp.IsUsed = true;
+
+			// Revoke all active sessions (Security requirement)
+			await _refreshTokenRepository.RevokeAllUserRefreshTokensAsync(user.Id, cancellationToken);
 			await _unitOfWork.SaveChangesAsync(cancellationToken);
 			return AuthResponseDto.Success("Password reset successfully.");
 		}

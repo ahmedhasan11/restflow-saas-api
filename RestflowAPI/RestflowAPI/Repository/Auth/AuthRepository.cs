@@ -90,5 +90,17 @@ namespace RestflowAPI.Repository.Auth
 			await _userManager.RemovePasswordAsync(user);
 			return await _userManager.AddPasswordAsync(user, newPassword);
 		}
+
+		public async Task RevokeAllUserRefreshTokensAsync(Guid userId, CancellationToken cancellationToken)
+		{
+			var tokens = await _context.Set<RefreshToken>()
+				.Where(r => r.UserId == userId && !r.IsRevoked)
+				.ToListAsync(cancellationToken);
+
+			foreach (var token in tokens)
+			{
+				token.IsRevoked = true;
+			}
+		}
 	}
 }
