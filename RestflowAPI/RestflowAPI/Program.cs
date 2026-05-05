@@ -34,6 +34,7 @@ namespace RestflowAPI
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 			builder.Services.AddScoped<IJwtService, JwtService>();
 			builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+			builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
             
 			// Add services to the container.
 			// Configure Entity Framework Core with SQL Server

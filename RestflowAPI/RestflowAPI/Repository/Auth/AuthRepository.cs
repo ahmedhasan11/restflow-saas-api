@@ -28,6 +28,11 @@ namespace RestflowAPI.Repository.Auth
 			return await _userManager.AddToRoleAsync(user, role);
 		}
 
+		public async Task<bool> CheckPasswordAsync(ApplicationUser user, string password)
+		{
+			return await _userManager.CheckPasswordAsync(user, password);
+		}
+
 		public async Task<IdentityResult> CreateUserAsync(ApplicationUser user, string password)
 		{
 			return await _userManager.CreateAsync(user, password);
@@ -49,6 +54,11 @@ namespace RestflowAPI.Repository.Auth
 				.Where(otp => otp.UserId == userId && otp.ChannelType == channel)
 				.OrderByDescending(otp => otp.CreatedAt)
 				.FirstOrDefaultAsync(cancellationToken);
+		}
+
+		public async Task<IEnumerable<string>> GetUserRolesAsync(ApplicationUser user)
+		{
+			return await _userManager.GetRolesAsync(user);
 		}
 
 		public async Task InvalidateOldOtpsAsync(Guid userId, ChannelType channel, CancellationToken cancellationToken)

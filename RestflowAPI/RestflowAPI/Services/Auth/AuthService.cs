@@ -14,6 +14,7 @@ namespace RestflowAPI.Services.Auth
 	public class AuthService : IAuthService
 	{
 		private readonly IAuthRepository _authRepository;
+		private readonly IRefreshTokenRepository _refreshTokenRepository;
 		private readonly IRefreshTokenService _refreshTokenService;
 		private readonly IJwtService _jwtService;
 		private readonly IValidator<RegisterRequestDto> _registerValidator;
@@ -26,7 +27,7 @@ namespace RestflowAPI.Services.Auth
 			IValidator<RegisterRequestDto> registerValidator, IUnitOfWork unitOfWork, 
 			IValidator<VerifyOtpRequestDto> verifyOtpValidator, IValidator<ResendOtpRequestDto>
 			resendOtpValidator, IValidator<LoginRequestDto> loginValidator, IRefreshTokenService refreshTokenService
-			, IJwtService jwtService)
+			, IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository)
 		{
 			_authRepository = authRepository;
 			_logger = logger;
@@ -37,6 +38,7 @@ namespace RestflowAPI.Services.Auth
 			_loginValidator = loginValidator;
 			_refreshTokenService = refreshTokenService;
 			_jwtService = jwtService;
+			_refreshTokenRepository = refreshTokenRepository;
 		}
 		public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request, CancellationToken cancellationToken)
 		{
@@ -189,6 +191,60 @@ namespace RestflowAPI.Services.Auth
 			await GenerateAndSaveOtp(user.Id, request.Channel, cancellationToken);
 			await _unitOfWork.SaveChangesAsync(cancellationToken);
 			return AuthResponseDto.Success("OTP resent successfully.");
+		}
+
+		public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request, CancellationToken cancellationToken)
+		{
+			var result = await _loginValidator.ValidateAsync(request, cancellationToken);
+			if (!result.IsValid)
+			{
+				return AuthResponseDto.Failure(result.Errors.Select(e => e.ErrorMessage));
+			}	
+			var user = await _authRepository.FindByEmailAsync(request.Email, cancellationToken);
+			if (user == null) 
+			{
+				return AuthResponseDto.Failure("User not found.");
+			}
+			var passwordValid = await _authRepository.CheckPasswordAsync(user, request.Password);
+			if (passwordValid == false)
+			{
+				return AuthResponseDto.Failure("Email OR Password is Invalid.");
+			}
+
+			if (user.Status != UserStatus.Active)
+			{
+				return AuthResponseDto.Failure("User account is not active.Please verify your email and phone.");
+			}
+
+			var roles = await _authRepository.GetUserRolesAsync(user);
+
+			JwtUserDataDto jwtUserData = new JwtUserDataDto
+			{
+				UserId = user.Id,
+				Email = user.Email!,
+				FullName = user.FullName,
+				TenantId = user.TenantId,
+				Roles = roles
+			};
+			var jwtResult = await _jwtService.GenerateTokenAsync(jwtUserData);
+
+			var rawRefreshToken= _refreshTokenService.GenerateRefreshToken();
+			var hashedRefreshToken =  HashOtp(rawRefreshToken);
+
+			RefreshToken refreshToken = new RefreshToken
+			{
+				UserId = user.Id,
+				TokenHash = hashedRefreshToken,
+				IssuedAt = DateTime.UtcNow,
+				ExpiresAt = DateTime.UtcNow.AddDays(7), 
+				IsRevoked = false
+			};
+
+			await _refreshTokenRepository.SaveRefreshTokenAsync(refreshToken, cancellationToken);
+			await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+			return AuthResponseDto.Success("Login successful.", jwtResult.Token, rawRefreshToken, jwtResult.ExpiresAt);
+
 		}
 	}
 }
