@@ -16,15 +16,17 @@ namespace RestflowAPI.Services.Auth
 		private readonly IAuthRepository _authRepository;
 		private readonly IValidator<RegisterRequestDto> _registerValidator;
 		private readonly IValidator<VerifyOtpRequestDto> _verifyOtpValidator;
+		private readonly IValidator<ResendOtpRequestDto> _resendOtpValidator;
 		private readonly ILogger<AuthService> _logger;
 		private readonly IUnitOfWork _unitOfWork;
-		public AuthService(IAuthRepository authRepository, ILogger<AuthService> logger, IValidator<RegisterRequestDto> registerValidator, IUnitOfWork unitOfWork, IValidator<VerifyOtpRequestDto> verifyOtpValidator)
+		public AuthService(IAuthRepository authRepository, ILogger<AuthService> logger, IValidator<RegisterRequestDto> registerValidator, IUnitOfWork unitOfWork, IValidator<VerifyOtpRequestDto> verifyOtpValidator, IValidator<ResendOtpRequestDto> resendOtpValidator)
 		{
 			_authRepository = authRepository;
 			_logger = logger;
 			_registerValidator = registerValidator;
 			_unitOfWork = unitOfWork;
 			_verifyOtpValidator = verifyOtpValidator;
+			_resendOtpValidator = resendOtpValidator;
 		}
 		public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request, CancellationToken cancellationToken)
 		{
@@ -153,6 +155,32 @@ namespace RestflowAPI.Services.Auth
 			var message = request.Channel == ChannelType.Email ? "Email verified." : "Phone verified.";
 			if (user.Status == UserStatus.Active) message += " Account is now active.";
 			return AuthResponseDto.Success(message, "OTP verified successfully.");
+		}
+
+		public async Task<AuthResponseDto> ResendOtpAsync(ResendOtpRequestDto request, CancellationToken cancellationToken)
+		{
+			var result = await _resendOtpValidator.ValidateAsync(request, cancellationToken);
+			if (!result.IsValid)
+
+			{
+				return AuthResponseDto.Failure(result.Errors.Select(e => e.ErrorMessage));
+			}
+			var user = await _authRepository.FindByEmailAsync(request.Email, cancellationToken);
+			if (user == null)
+			{
+				return AuthResponseDto.Failure("User not found.");
+			}
+
+			if (request.Channel == ChannelType.Email && user.EmailConfirmed)
+				return AuthResponseDto.Failure("Email is already verified.");
+
+			if (request.Channel == ChannelType.Phone && user.PhoneNumberConfirmed)
+				return AuthResponseDto.Failure("Phone is already verified.");
+
+			await _authRepository.InvalidateOldOtpsAsync(user.Id, request.Channel, cancellationToken);
+			await GenerateAndSaveOtp(user.Id, request.Channel, cancellationToken);
+			await _unitOfWork.SaveChangesAsync(cancellationToken);
+			return AuthResponseDto.Success("OTP resent successfully.");
 		}
 	}
 }

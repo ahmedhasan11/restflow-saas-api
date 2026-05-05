@@ -51,6 +51,18 @@ namespace RestflowAPI.Repository.Auth
 				.FirstOrDefaultAsync(cancellationToken);
 		}
 
+		public async Task InvalidateOldOtpsAsync(Guid userId, ChannelType channel, CancellationToken cancellationToken)
+		{
+			var oldOtps = await _context.Set<OtpVerification>()
+				.Where(o => o.UserId == userId && o.ChannelType == channel && !o.IsUsed)
+				.ToListAsync(cancellationToken);
+
+			foreach (var otp in oldOtps)
+			{
+				otp.ExpiresAt = DateTime.UtcNow;
+			}
+		}
+
 		public async Task SaveOtpAsync(OtpVerification otp, CancellationToken cancellationToken)
 		{
 			await _context.Set<OtpVerification>().AddAsync(otp, cancellationToken);
