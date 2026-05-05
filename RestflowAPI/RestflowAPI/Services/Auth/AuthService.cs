@@ -196,10 +196,10 @@ namespace RestflowAPI.Services.Auth
 			{
 				return AuthResponseDto.Failure(result.Errors.Select(e => e.ErrorMessage));
 			}	
-			var user = await _authRepository.FindByEmailAsync(request.Email, cancellationToken);
+			var user = await _authRepository.FindByIdentifierAsync(request.Email, cancellationToken);
 			if (user == null) 
 			{
-				return AuthResponseDto.Failure("User not found.");
+				return AuthResponseDto.Failure("Invalid credentials.");
 			}
 			var passwordValid = await _authRepository.CheckPasswordAsync(user, request.Password);
 			if (passwordValid == false)
@@ -213,7 +213,14 @@ namespace RestflowAPI.Services.Auth
 			}
 
 			var roles = await _authRepository.GetUserRolesAsync(user);
-
+			var isSuperAdmin = roles.Contains(UserRole.SuperAdmin.ToString());
+			if (user.TenantId!=null && !isSuperAdmin)
+			{
+				if (user.Tenant?.Status==TenantStatus.Inactive)
+				{
+					return AuthResponseDto.Failure("Your restaurant account is inactive. Please contact support.");
+				}
+			}
 			JwtUserDataDto jwtUserData = new JwtUserDataDto
 			{
 				UserId = user.Id,

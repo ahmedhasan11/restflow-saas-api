@@ -78,5 +78,11 @@ namespace RestflowAPI.Repository.Auth
 		{
 			await _context.Set<OtpVerification>().AddAsync(otp, cancellationToken);
 		}
+		public async Task<ApplicationUser?> FindByIdentifierAsync(string identifier, CancellationToken cancellationToken)
+		{
+			return await _userManager.Users
+				.Include(u => u.Tenant)
+				.FirstOrDefaultAsync(u => (u.Email == identifier || u.PhoneNumber == identifier), cancellationToken);
+		}
 	}
 }
