@@ -1,8 +1,13 @@
 
+using FluentValidation;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using RestflowAPI.Data.UnitOfWork;
+using RestflowAPI.Repository.Auth;
+using RestflowAPI.RepositoryInterfaces.Auth;
+using RestflowAPI.ServiceInterfaces.Auth;
 using RestflowAPI.ServiceInterfaces.Tenants;
+using RestflowAPI.Services.Auth;
 using RestflowAPI.Services.Tenants;
 
 namespace RestflowAPI
@@ -14,6 +19,8 @@ namespace RestflowAPI
             var builder = WebApplication.CreateBuilder(args);
 			// Add Tenant Services
 			builder.Services.AddHttpContextAccessor();
+			builder.Services.AddScoped<IAuthRepository, AuthRepository>();
+			builder.Services.AddScoped<IAuthService, AuthService>();
 			builder.Services.AddScoped<ICurrentTenantService,CurrentTenantService>();
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             
@@ -33,8 +40,9 @@ namespace RestflowAPI
 			.AddEntityFrameworkStores<RestflowAPI.Data.ApplicationDbContext>()
 			.AddDefaultTokenProviders();
 			builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-            builder.Services.AddEndpointsApiExplorer();
+			builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+			// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+			builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
             var app = builder.Build();

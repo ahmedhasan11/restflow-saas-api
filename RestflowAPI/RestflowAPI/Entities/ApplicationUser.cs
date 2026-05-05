@@ -11,7 +11,7 @@ namespace RestflowAPI.Entities
 		// We remove Phone/Email/PasswordHash because IdentityUser already has PhoneNumber, Email, and PasswordHash
 		// We also map EmailVerified and PhoneVerified to IdentityUser's EmailConfirmed and PhoneNumberConfirmed
 
-		public UserStatus Status { get; set; } = UserStatus.Active;
+		public UserStatus Status { get; set; } = UserStatus.Inactive;
 		public string? ProfileImageUrl { get; set; }
 		public string PreferredLanguage { get; set; } = "en";
 		public string? NotificationPreferences { get; set; }
