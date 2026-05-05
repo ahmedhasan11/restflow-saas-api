@@ -17,9 +17,10 @@ namespace RestflowAPI.Services.Auth
 		private readonly IValidator<RegisterRequestDto> _registerValidator;
 		private readonly IValidator<VerifyOtpRequestDto> _verifyOtpValidator;
 		private readonly IValidator<ResendOtpRequestDto> _resendOtpValidator;
+		private readonly IValidator<LoginRequestDto> _loginValidator;
 		private readonly ILogger<AuthService> _logger;
 		private readonly IUnitOfWork _unitOfWork;
-		public AuthService(IAuthRepository authRepository, ILogger<AuthService> logger, IValidator<RegisterRequestDto> registerValidator, IUnitOfWork unitOfWork, IValidator<VerifyOtpRequestDto> verifyOtpValidator, IValidator<ResendOtpRequestDto> resendOtpValidator)
+		public AuthService(IAuthRepository authRepository, ILogger<AuthService> logger, IValidator<RegisterRequestDto> registerValidator, IUnitOfWork unitOfWork, IValidator<VerifyOtpRequestDto> verifyOtpValidator, IValidator<ResendOtpRequestDto> resendOtpValidator, IValidator<LoginRequestDto> loginValidator)
 		{
 			_authRepository = authRepository;
 			_logger = logger;
@@ -27,6 +28,7 @@ namespace RestflowAPI.Services.Auth
 			_unitOfWork = unitOfWork;
 			_verifyOtpValidator = verifyOtpValidator;
 			_resendOtpValidator = resendOtpValidator;
+			_loginValidator = loginValidator;
 		}
 		public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request, CancellationToken cancellationToken)
 		{
