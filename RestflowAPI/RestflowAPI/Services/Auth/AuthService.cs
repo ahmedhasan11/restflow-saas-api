@@ -23,14 +23,16 @@ namespace RestflowAPI.Services.Auth
 		private readonly IValidator<LoginRequestDto> _loginValidator;
 		private readonly IValidator<RefreshTokenRequestDto> _refreshTokenValidator;
 		private readonly IValidator<ForgotPasswordRequestDto> _forgotPasswordValidator;
+		private readonly IValidator<ResetPasswordRequestDto> _resetPasswordValidator;
 		private readonly ILogger<AuthService> _logger;
 		private readonly IUnitOfWork _unitOfWork;
 		public AuthService(IAuthRepository authRepository, ILogger<AuthService> logger, 
-			IValidator<RegisterRequestDto> registerValidator, IUnitOfWork unitOfWork, 
+			IValidator<RegisterRequestDto> registerValidator, IUnitOfWork unitOfWork,
 			IValidator<VerifyOtpRequestDto> verifyOtpValidator, IValidator<ResendOtpRequestDto>
 			resendOtpValidator, IValidator<LoginRequestDto> loginValidator, IRefreshTokenService refreshTokenService
 			, IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository
-			, IValidator<RefreshTokenRequestDto> refreshTokenValidator, IValidator<ForgotPasswordRequestDto> forgotPasswordValidator)
+			, IValidator<RefreshTokenRequestDto> refreshTokenValidator, IValidator<ForgotPasswordRequestDto> forgotPasswordValidator
+			, IValidator<ResetPasswordRequestDto> resetPasswordValidator)
 		{
 			_authRepository = authRepository;
 			_logger = logger;
@@ -44,6 +46,7 @@ namespace RestflowAPI.Services.Auth
 			_refreshTokenRepository = refreshTokenRepository;
 			_refreshTokenValidator = refreshTokenValidator;
 			_forgotPasswordValidator = forgotPasswordValidator;
+			_resetPasswordValidator = resetPasswordValidator;
 		}
 		public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request, CancellationToken cancellationToken)
 		{
@@ -335,6 +338,44 @@ namespace RestflowAPI.Services.Auth
 			await GenerateAndSaveOtp(user.Id, channel, cancellationToken);
 			await _unitOfWork.SaveChangesAsync(cancellationToken);
 			return AuthResponseDto.Success("A reset code has been sent to your chosen channel.");
+		}
+
+		public async Task<AuthResponseDto> ResetPasswordAsync(ResetPasswordRequestDto request, CancellationToken cancellationToken)
+		{
+			var result = await _resetPasswordValidator.ValidateAsync(request, cancellationToken);
+			if (!result.IsValid)
+			{
+				return AuthResponseDto.Failure(result.Errors.Select(e => e.ErrorMessage));
+			}
+
+			var user = await _authRepository.FindByIdentifierAsync(request.Identifier, cancellationToken);
+			if (user == null)
+			{
+				return AuthResponseDto.Failure("User not found.");
+			}
+
+			// Security check: ensure account is active during reset
+			if (user.Status != UserStatus.Active)
+			{
+				return AuthResponseDto.Failure("Account is not active.");
+			}
+			ChannelType channel = request.Identifier.Contains("@") ? ChannelType.Email : ChannelType.Phone;
+
+			var otp = await _authRepository.GetLatestOtpAsync(user.Id, channel, cancellationToken);
+			if (otp == null || otp.IsUsed || otp.ExpiresAt < DateTime.UtcNow || otp.OtpCodeHash != HashOtp(request.OtpCode))
+			{
+				return AuthResponseDto.Failure("Invalid or expired reset code.");
+			}
+
+			var resetResult = await _authRepository.ResetPasswordAsync(user, request.NewPassword);
+			if (!resetResult.Succeeded)
+			{
+				return AuthResponseDto.Failure(resetResult.Errors.Select(e => e.Description));
+			}
+
+			otp.IsUsed = true;
+			await _unitOfWork.SaveChangesAsync(cancellationToken);
+			return AuthResponseDto.Success("Password reset successfully.");
 		}
 	}
 }

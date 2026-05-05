@@ -90,5 +90,18 @@ namespace RestflowAPI.Controllers
 
 			return Ok(result);
 		}
+
+		[HttpPost("reset-password")]
+		public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequestDto request, CancellationToken cancellationToken)
+		{
+			var result = await _authService.ResetPasswordAsync(request, cancellationToken);
+
+			if (!result.IsSuccess)
+			{
+				return BadRequest(result);
+			}
+
+			return Ok(result);
+		}
 	}
 }
