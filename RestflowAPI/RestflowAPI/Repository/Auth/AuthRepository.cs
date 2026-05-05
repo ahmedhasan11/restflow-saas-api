@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using RestflowAPI.Data;
 using RestflowAPI.Entities;
 using RestflowAPI.RepositoryInterfaces.Auth;
+using System.Threading;
 
 namespace RestflowAPI.Repository.Auth
 {
@@ -31,20 +32,20 @@ namespace RestflowAPI.Repository.Auth
 			return await _userManager.CreateAsync(user, password);
 		}
 
-		public async Task<ApplicationUser?> FindByEmailAsync(string email)
+		public async Task<ApplicationUser?> FindByEmailAsync(string email, CancellationToken cancellationToken)
 		{
-			return await _userManager.FindByEmailAsync(email);
+			return await _userManager.Users.FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
 		}
 
-		public async Task<ApplicationUser?> FindByPhoneAsync(string phone)
+		public async Task<ApplicationUser?> FindByPhoneAsync(string phone, CancellationToken cancellationToken)
 		{
-			return await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == phone);
+			return await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == phone, cancellationToken);
 		}
 
-		public async Task SaveOtpAsync(OtpVerification otp)
+		public async Task SaveOtpAsync(OtpVerification otp, CancellationToken cancellationToken)
 		{
-			await _context.Set<OtpVerification>().AddAsync(otp);
-			await _context.SaveChangesAsync();
+			await _context.Set<OtpVerification>().AddAsync(otp, cancellationToken);
+			await _context.SaveChangesAsync(cancellationToken);
 		}
 	}
 }

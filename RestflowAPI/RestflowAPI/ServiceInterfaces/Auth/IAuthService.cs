@@ -5,6 +5,6 @@ namespace RestflowAPI.ServiceInterfaces.Auth
 {
 	public interface IAuthService
 	{
-		Task<AuthResponseDto> RegisterAsync(RegisterRequest request);
+		Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request, CancellationToken cancellationToken);
 	}
 }
