@@ -14,13 +14,19 @@ namespace RestflowAPI.Services.Auth
 	public class AuthService : IAuthService
 	{
 		private readonly IAuthRepository _authRepository;
+		private readonly IRefreshTokenService _refreshTokenService;
+		private readonly IJwtService _jwtService;
 		private readonly IValidator<RegisterRequestDto> _registerValidator;
 		private readonly IValidator<VerifyOtpRequestDto> _verifyOtpValidator;
 		private readonly IValidator<ResendOtpRequestDto> _resendOtpValidator;
 		private readonly IValidator<LoginRequestDto> _loginValidator;
 		private readonly ILogger<AuthService> _logger;
 		private readonly IUnitOfWork _unitOfWork;
-		public AuthService(IAuthRepository authRepository, ILogger<AuthService> logger, IValidator<RegisterRequestDto> registerValidator, IUnitOfWork unitOfWork, IValidator<VerifyOtpRequestDto> verifyOtpValidator, IValidator<ResendOtpRequestDto> resendOtpValidator, IValidator<LoginRequestDto> loginValidator)
+		public AuthService(IAuthRepository authRepository, ILogger<AuthService> logger, 
+			IValidator<RegisterRequestDto> registerValidator, IUnitOfWork unitOfWork, 
+			IValidator<VerifyOtpRequestDto> verifyOtpValidator, IValidator<ResendOtpRequestDto>
+			resendOtpValidator, IValidator<LoginRequestDto> loginValidator, IRefreshTokenService refreshTokenService
+			, IJwtService jwtService)
 		{
 			_authRepository = authRepository;
 			_logger = logger;
@@ -29,6 +35,8 @@ namespace RestflowAPI.Services.Auth
 			_verifyOtpValidator = verifyOtpValidator;
 			_resendOtpValidator = resendOtpValidator;
 			_loginValidator = loginValidator;
+			_refreshTokenService = refreshTokenService;
+			_jwtService = jwtService;
 		}
 		public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request, CancellationToken cancellationToken)
 		{
@@ -107,7 +115,6 @@ namespace RestflowAPI.Services.Auth
 			var hash = sha256.ComputeHash(bytes);
 			return Convert.ToBase64String(hash);
 		}
-
 		public async Task<AuthResponseDto> VerifyOtpAsync(VerifyOtpRequestDto request, CancellationToken cancellationToken)
 		{
 			var result = await _verifyOtpValidator.ValidateAsync(request, cancellationToken);	
@@ -158,7 +165,6 @@ namespace RestflowAPI.Services.Auth
 			if (user.Status == UserStatus.Active) message += " Account is now active.";
 			return AuthResponseDto.Success(message, "OTP verified successfully.");
 		}
-
 		public async Task<AuthResponseDto> ResendOtpAsync(ResendOtpRequestDto request, CancellationToken cancellationToken)
 		{
 			var result = await _resendOtpValidator.ValidateAsync(request, cancellationToken);

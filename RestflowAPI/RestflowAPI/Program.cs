@@ -1,7 +1,9 @@
 
 using FluentValidation;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using RestflowAPI.Data.UnitOfWork;
 using RestflowAPI.Repository.Auth;
 using RestflowAPI.RepositoryInterfaces.Auth;
@@ -9,6 +11,8 @@ using RestflowAPI.ServiceInterfaces.Auth;
 using RestflowAPI.ServiceInterfaces.Tenants;
 using RestflowAPI.Services.Auth;
 using RestflowAPI.Services.Tenants;
+using RestflowAPI.Settings;
+using System.Text;
 
 namespace RestflowAPI
 {
@@ -17,12 +21,19 @@ namespace RestflowAPI
         public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+
+			// Configure JWT Settings
+			var jwtSettings = new JwtSettings();
+			builder.Configuration.GetSection("Jwt").Bind(jwtSettings);
+			builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
 			// Add Tenant Services
 			builder.Services.AddHttpContextAccessor();
 			builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 			builder.Services.AddScoped<IAuthService, AuthService>();
 			builder.Services.AddScoped<ICurrentTenantService,CurrentTenantService>();
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+			builder.Services.AddScoped<IJwtService, JwtService>();
+			builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
             
 			// Add services to the container.
 			// Configure Entity Framework Core with SQL Server
@@ -39,6 +50,26 @@ namespace RestflowAPI
 			})
 			.AddEntityFrameworkStores<RestflowAPI.Data.ApplicationDbContext>()
 			.AddDefaultTokenProviders();
+
+			// Configure JWT Authentication
+			builder.Services.AddAuthentication(options => {
+				options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+				options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+			})
+			.AddJwtBearer(options => {
+				options.TokenValidationParameters = new TokenValidationParameters
+				{
+					ValidateIssuer = true,
+					ValidateAudience = true,
+					ValidateLifetime = true,
+					ValidateIssuerSigningKey = true,
+					ValidIssuer = jwtSettings.Issuer,
+					ValidAudience = jwtSettings.Audience,
+					IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Secret))
+				};
+			});
+
+
 			builder.Services.AddControllers()
 				.AddJsonOptions(options => {
 					options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
