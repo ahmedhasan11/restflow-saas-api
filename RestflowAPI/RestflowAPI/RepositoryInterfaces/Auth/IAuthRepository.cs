@@ -15,11 +15,7 @@ namespace RestflowAPI.RepositoryInterfaces.Auth
 		// Future: Task<OtpVerification?> GetValidOtpAsync(Guid userId, ChannelType channel, string codeHash);
 		// New methods for verification
 		Task<OtpVerification?> GetLatestOtpAsync(Guid userId, ChannelType channel, CancellationToken cancellationToken);
-		Task UpdateOtpStatusAsync(OtpVerification otp, CancellationToken cancellationToken);
-		Task<IdentityResult> UpdateUserAsync(ApplicationUser user);
-
 		Task<bool> CheckPasswordAsync(ApplicationUser user , string password);
-
 		Task<IEnumerable<string>> GetUserRolesAsync(ApplicationUser user);
 	}
 }

@@ -21,13 +21,15 @@ namespace RestflowAPI.Services.Auth
 		private readonly IValidator<VerifyOtpRequestDto> _verifyOtpValidator;
 		private readonly IValidator<ResendOtpRequestDto> _resendOtpValidator;
 		private readonly IValidator<LoginRequestDto> _loginValidator;
+		private readonly IValidator<RefreshTokenRequestDto> _refreshTokenValidator;
 		private readonly ILogger<AuthService> _logger;
 		private readonly IUnitOfWork _unitOfWork;
 		public AuthService(IAuthRepository authRepository, ILogger<AuthService> logger, 
 			IValidator<RegisterRequestDto> registerValidator, IUnitOfWork unitOfWork, 
 			IValidator<VerifyOtpRequestDto> verifyOtpValidator, IValidator<ResendOtpRequestDto>
 			resendOtpValidator, IValidator<LoginRequestDto> loginValidator, IRefreshTokenService refreshTokenService
-			, IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository)
+			, IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository
+			, IValidator<RefreshTokenRequestDto> refreshTokenValidator)
 		{
 			_authRepository = authRepository;
 			_logger = logger;
@@ -39,6 +41,7 @@ namespace RestflowAPI.Services.Auth
 			_refreshTokenService = refreshTokenService;
 			_jwtService = jwtService;
 			_refreshTokenRepository = refreshTokenRepository;
+			_refreshTokenValidator = refreshTokenValidator;
 		}
 		public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request, CancellationToken cancellationToken)
 		{
@@ -152,15 +155,9 @@ namespace RestflowAPI.Services.Auth
 			}
 
 			otp.IsUsed = true;
-			await _authRepository.UpdateOtpStatusAsync(otp, cancellationToken);
 			if (user.EmailConfirmed && user.PhoneNumberConfirmed)
 			{
 				user.Status = UserStatus.Active;
-			}
-			var updateResult = await _authRepository.UpdateUserAsync(user);
-			if (!updateResult.Succeeded)
-			{
-				return AuthResponseDto.Failure(updateResult.Errors.Select(e => e.Description));
 			}
 			await _unitOfWork.SaveChangesAsync(cancellationToken);
 			var message = request.Channel == ChannelType.Email ? "Email verified." : "Phone verified.";
@@ -192,7 +189,6 @@ namespace RestflowAPI.Services.Auth
 			await _unitOfWork.SaveChangesAsync(cancellationToken);
 			return AuthResponseDto.Success("OTP resent successfully.");
 		}
-
 		public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request, CancellationToken cancellationToken)
 		{
 			var result = await _loginValidator.ValidateAsync(request, cancellationToken);
@@ -244,6 +240,65 @@ namespace RestflowAPI.Services.Auth
 			await _unitOfWork.SaveChangesAsync(cancellationToken);
 
 			return AuthResponseDto.Success("Login successful.", jwtResult.Token, rawRefreshToken, jwtResult.ExpiresAt);
+
+		}
+		public async Task<AuthResponseDto> RefreshSessionAsync(RefreshTokenRequestDto request, CancellationToken cancellationToken)
+		{
+			var result = await _refreshTokenValidator.ValidateAsync(request, cancellationToken);	
+			if (!result.IsValid)
+			{
+				return AuthResponseDto.Failure(result.Errors.Select(e => e.ErrorMessage));
+			}	
+
+			var recievedTokenHash = HashOtp(request.RefreshToken);
+			var storedToken = await _refreshTokenRepository.GetRefreshTokenAsync(recievedTokenHash, cancellationToken);
+			if (storedToken==null || storedToken.IsRevoked || storedToken.ExpiresAt<DateTime.UtcNow)
+			{
+				return AuthResponseDto.Failure("Invalid or expired refresh token.");
+			}
+			var user = storedToken.User;
+			if (user == null)
+			{
+				return AuthResponseDto.Failure("User not found.");
+			}
+			var roles = await _authRepository.GetUserRolesAsync(user);
+			
+			var isSuperAdmin = roles.Contains(UserRole.SuperAdmin.ToString());
+			if (user.TenantId != null && !isSuperAdmin)
+			{
+				if (user.Tenant?.Status == TenantStatus.Inactive)
+				{
+					return AuthResponseDto.Failure("User's tenant is inactive.");
+				}
+			}
+
+			var jwtResult = await _jwtService.GenerateTokenAsync(new JwtUserDataDto
+			{
+				UserId = user.Id,
+				Email = user.Email!,
+				FullName = user.FullName,
+				TenantId = user.TenantId,
+				Roles = roles
+			});
+
+			var newRawRefreshToken = _refreshTokenService.GenerateRefreshToken();
+			var newHashedRefreshToken = HashOtp(newRawRefreshToken);
+
+			storedToken.IsRevoked = true;
+
+			var newRefreshToken = new RefreshToken
+			{
+				UserId = user.Id,
+				TokenHash = newHashedRefreshToken,
+				IssuedAt = DateTime.UtcNow,
+				ExpiresAt = DateTime.UtcNow.AddDays(7),
+				IsRevoked = false
+			};
+
+			await _refreshTokenRepository.SaveRefreshTokenAsync(newRefreshToken, cancellationToken);
+			await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+			return AuthResponseDto.Success("Session refreshed successfully.", jwtResult.Token, newRawRefreshToken, jwtResult.ExpiresAt);
 
 		}
 	}

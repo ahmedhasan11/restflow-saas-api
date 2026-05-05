@@ -11,5 +11,7 @@ namespace RestflowAPI.ServiceInterfaces.Auth
 		Task<AuthResponseDto> ResendOtpAsync(ResendOtpRequestDto request, CancellationToken cancellationToken);
 
 		Task<AuthResponseDto> LoginAsync(LoginRequestDto request, CancellationToken cancellationToken);
+
+		Task<AuthResponseDto> RefreshSessionAsync(RefreshTokenRequestDto request, CancellationToken cancellationToken);
 	}
 }

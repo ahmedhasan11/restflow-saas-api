@@ -56,6 +56,7 @@ namespace RestflowAPI.Repository.Auth
 				.FirstOrDefaultAsync(cancellationToken);
 		}
 
+
 		public async Task<IEnumerable<string>> GetUserRolesAsync(ApplicationUser user)
 		{
 			return await _userManager.GetRolesAsync(user);
@@ -76,16 +77,6 @@ namespace RestflowAPI.Repository.Auth
 		public async Task SaveOtpAsync(OtpVerification otp, CancellationToken cancellationToken)
 		{
 			await _context.Set<OtpVerification>().AddAsync(otp, cancellationToken);
-		}
-
-		public async Task UpdateOtpStatusAsync(OtpVerification otp, CancellationToken cancellationToken)
-		{
-			 _context.Set<OtpVerification>().Update(otp);
-		}
-
-		public async Task<IdentityResult> UpdateUserAsync(ApplicationUser user)
-		{
-			return await _userManager.UpdateAsync(user);
 		}
 	}
 }
