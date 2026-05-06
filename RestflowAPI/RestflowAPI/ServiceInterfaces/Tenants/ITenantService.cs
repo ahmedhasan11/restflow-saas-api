@@ -5,5 +5,7 @@ namespace RestflowAPI.ServiceInterfaces.Tenants
 	public interface ITenantService
 	{
 		Task<TenantResponseDto> CreateTenantAsync(CreateTenantRequestDto request, CancellationToken cancellationToken);
+
+		Task<IEnumerable<TenantResponseDto>> GetAllTenantsAsync(CancellationToken cancellationToken);
 	}
 }

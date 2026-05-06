@@ -21,5 +21,7 @@ namespace RestflowAPI.ServiceInterfaces.Auth
 		Task<AuthResponseDto> LogoutAsync(LogoutRequestDto request, CancellationToken cancellationToken);
 
 		Task<UserProfileResultDto?> GetMeAsync(Guid userId, CancellationToken cancellationToken);
+
+		Task<AuthResponseDto> CreateUserByAdminAsync(CreateUserByAdminDto request, CancellationToken cancellationToken);
 	}
 }

@@ -53,5 +53,18 @@ namespace RestflowAPI.Services.Tenants
 				CreatedAt = tenant.CreatedAt
 			};
 		}
+
+		public async Task<IEnumerable<TenantResponseDto>> GetAllTenantsAsync(CancellationToken cancellationToken)
+		{
+		    var tenants = await _tenantRepository.GetAllAsync(cancellationToken);
+			return tenants.Select(t => new TenantResponseDto
+			{
+				Id = t.Id,
+				RestaurantName = t.RestaurantName,
+				TenantCode = t.TenantCode,
+				Status = t.Status,
+				CreatedAt = t.CreatedAt
+			});
+		}
 	}
 }

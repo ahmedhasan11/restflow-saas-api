@@ -18,9 +18,19 @@ namespace RestflowAPI.Repository.Tenants
 			await _db.Tenants.AddAsync(tenant, cancellationToken);
 		}
 
+		public async Task<IEnumerable<Tenant>> GetAllAsync(CancellationToken cancellationToken)
+		{
+			return await _db.Tenants.ToListAsync(cancellationToken);
+		}
+
 		public async Task<Tenant?> GetByCodeAsync(string code, CancellationToken cancellationToken)
 		{
 			return await _db.Tenants.FirstOrDefaultAsync(t => t.TenantCode == code, cancellationToken);
+		}
+
+		public async Task<Tenant?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+		{
+			return await _db.Tenants.FirstOrDefaultAsync(t => t.Id == id, cancellationToken);
 		}
 	}
 }

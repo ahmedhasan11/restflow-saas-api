@@ -25,5 +25,13 @@ namespace RestflowAPI.Controllers
 			//lsa m5lsna4 hna 
 			return Ok(result);
 		}
+
+		[HttpGet("tenants")]
+		public async Task<IActionResult> GetAllTenants(CancellationToken cancellationToken)
+		{
+			var result = await _tenantService.GetAllTenantsAsync(cancellationToken);
+			//lsa m5lsna4 hna
+			return Ok(result);
+		}
 	}
 }
