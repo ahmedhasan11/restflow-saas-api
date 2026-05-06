@@ -17,7 +17,7 @@ namespace RestflowAPI.Services.Auth
 			_jwtSettings = jwtSettings.Value;
 		}
 
-		public Task<JwtResultDto> GenerateTokenAsync(JwtUserDataDto userData)
+		public async Task<JwtResultDto> GenerateTokenAsync(JwtUserDataDto userData)
 		{
 			var claimsjwt = new List<Claim>
 		{

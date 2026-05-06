@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using RestflowAPI.Constants;
 using RestflowAPI.DTOs.Auth;
 using RestflowAPI.DTOs.Tenants;
 using RestflowAPI.ServiceInterfaces.Auth;
@@ -8,7 +9,7 @@ using RestflowAPI.ServiceInterfaces.Tenants;
 
 namespace RestflowAPI.Controllers
 {
-	[Authorize(Roles = "SuperAdmin")] //hn3mlha policy b3d kda
+	[Authorize(Policy = Permissions.Policies.SuperAdminOnly)]
 	[Route("api/[controller]")]
 	[ApiController]
 	public class AdminController : ControllerBase

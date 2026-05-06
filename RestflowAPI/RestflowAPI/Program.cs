@@ -3,6 +3,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using RestflowAPI.Data.UnitOfWork;
 using RestflowAPI.Repository.Auth;
@@ -86,6 +87,21 @@ namespace RestflowAPI
 					options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
 				});
 			builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+
+			builder.Services.AddAuthorization(options =>
+			{
+				options.AddPolicy(RestflowAPI.Constants.Permissions.Policies.SuperAdminOnly,
+					policy => policy.RequireRole(RestflowAPI.Constants.Permissions.Roles.SuperAdmin));
+
+				options.AddPolicy(RestflowAPI.Constants.Permissions.Policies.OwnerOnly,
+					policy => policy.RequireRole(RestflowAPI.Constants.Permissions.Roles.Owner));
+
+				options.AddPolicy(RestflowAPI.Constants.Permissions.Policies.EmployeeOnly,
+					policy => policy.RequireRole(RestflowAPI.Constants.Permissions.Roles.Employee));
+
+				options.AddPolicy(RestflowAPI.Constants.Permissions.Policies.TenantAccess,
+					policy => policy.RequireRole(RestflowAPI.Constants.Permissions.Roles.Owner, RestflowAPI.Constants.Permissions.Roles.Employee));
+			});
 			// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 			builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
@@ -96,7 +112,10 @@ namespace RestflowAPI
 			using (var scope = app.Services.CreateScope())
 			{
 				var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<RestflowAPI.Entities.ApplicationRole>>();
+				var userManager = scope.ServiceProvider.GetRequiredService<UserManager<RestflowAPI.Entities.ApplicationUser>>();
+				var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
 				await RestflowAPI.Data.IdentityDbInitializer.SeedRolesAsync(roleManager);
+				await RestflowAPI.Data.IdentityDbInitializer.SeedSuperAdminAsync(userManager, configuration);
 			}
 			// Configure the HTTP request pipeline.
 			app.UseMiddleware<RestflowAPI.Middlewares.GlobalExceptionMiddleware>();
