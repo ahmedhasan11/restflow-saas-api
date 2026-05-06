@@ -102,5 +102,27 @@ namespace RestflowAPI.Repository.Auth
 				token.IsRevoked = true;
 			}
 		}
+
+		public async Task<ApplicationUser?> FindByIdAsync(Guid userId, CancellationToken cancellationToken)
+		{
+			return await _userManager.Users
+				.Include(u => u.Tenant)
+				.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+		}
+
+		public async Task<IdentityResult> IncrementAccessFailedCountAsync(ApplicationUser user)
+		{
+			return await _userManager.AccessFailedAsync(user);
+		}
+
+		public async Task<IdentityResult> ResetAccessFailedCountAsync(ApplicationUser user)
+		{
+			return await _userManager.ResetAccessFailedCountAsync(user);
+		}
+
+		public async Task<bool> IsLockedOutAsync(ApplicationUser user)
+		{
+			return await _userManager.IsLockedOutAsync(user);
+		}
 	}
 }

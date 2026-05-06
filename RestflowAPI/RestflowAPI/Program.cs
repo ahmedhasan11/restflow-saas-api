@@ -48,6 +48,11 @@ namespace RestflowAPI
 				options.Password.RequireLowercase = true;
 				options.Password.RequireDigit = false;
 				//options.Password.RequiredUniqueChars = 3;
+
+				// Lockout Settings (US-20)
+				options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+				options.Lockout.MaxFailedAccessAttempts = 5;
+				options.Lockout.AllowedForNewUsers = true;
 			})
 			.AddEntityFrameworkStores<RestflowAPI.Data.ApplicationDbContext>()
 			.AddDefaultTokenProviders();

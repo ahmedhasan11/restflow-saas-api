@@ -213,16 +213,23 @@ namespace RestflowAPI.Services.Auth
 			{
 				return AuthResponseDto.Failure("Invalid credentials.");
 			}
-			var passwordValid = await _authRepository.CheckPasswordAsync(user, request.Password);
-			if (passwordValid == false)
+			if (await _authRepository.IsLockedOutAsync(user))
 			{
-				return AuthResponseDto.Failure("Email OR Password is Invalid.");
+				return AuthResponseDto.Failure("Account is temporarily blocked due to repeated failed login attempts. Please try again in 15 minutes.");
+			}
+			var isPasswordValid = await _authRepository.CheckPasswordAsync(user, request.Password);
+			if (!isPasswordValid)
+			{
+				await _authRepository.IncrementAccessFailedCountAsync(user);
+				return AuthResponseDto.Failure("Invalid credentials.");
 			}
 
 			if (user.Status != UserStatus.Active)
 			{
 				return AuthResponseDto.Failure("User account is not active.Please verify your email and phone.");
 			}
+			// Reset failed attempts on success
+			await _authRepository.ResetAccessFailedCountAsync(user);
 
 			var roles = await _authRepository.GetUserRolesAsync(user);
 			var isSuperAdmin = roles.Contains(UserRole.SuperAdmin.ToString());
@@ -400,11 +407,34 @@ namespace RestflowAPI.Services.Auth
 			{
 				return AuthResponseDto.Failure("Invalid or expired refresh token.");
 			}
-			storedToken.IsRevoked = true;
 			await _refreshTokenRepository.RevokeAllUserRefreshTokensAsync(storedToken.UserId, cancellationToken);
 			await _unitOfWork.SaveChangesAsync(cancellationToken);
 			return AuthResponseDto.Success("Logged out successfully.");
 
+		}
+		public async Task<UserProfileResultDto?> GetMeAsync(Guid userId, CancellationToken cancellationToken)
+		{
+			if (userId==Guid.Empty)
+			{
+				return null;
+			}
+			var user = await _authRepository.FindByIdAsync(userId, cancellationToken);
+			if (user == null || user.Status != UserStatus.Active)
+			{
+				return null;
+			}
+			var roles = await _authRepository.GetUserRolesAsync(user);
+
+			return new UserProfileResultDto
+			{
+				Id = user.Id,
+				FullName = user.FullName,
+				Email = user.Email ?? string.Empty,
+				Phone = user.PhoneNumber ?? string.Empty,
+				Role = roles.FirstOrDefault() ?? string.Empty,
+				TenantId = user.TenantId,
+				Status = user.Status
+			};
 		}
 	}
 }

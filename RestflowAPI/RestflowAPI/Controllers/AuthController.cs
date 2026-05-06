@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
 using RestflowAPI.DTOs.Auth;
@@ -112,6 +113,25 @@ namespace RestflowAPI.Controllers
 			if (!result.IsSuccess)
 			{
 				return BadRequest(result);
+			}
+
+			return Ok(result);
+		}
+
+		[Authorize]
+		[HttpGet("me")]
+		public async Task<IActionResult> GetMe(CancellationToken cancellationToken)
+		{
+			var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+			if (!Guid.TryParse(userIdString, out var userId))
+			{
+				return Unauthorized();
+			}
+
+			var result = await _authService.GetMeAsync(userId, cancellationToken);
+			if (result == null)
+			{
+				return Unauthorized();
 			}
 
 			return Ok(result);

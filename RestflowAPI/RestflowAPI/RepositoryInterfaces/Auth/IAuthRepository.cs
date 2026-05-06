@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RestflowAPI.Entities;
 using RestflowAPI.Enums;
 
@@ -20,6 +21,12 @@ namespace RestflowAPI.RepositoryInterfaces.Auth
 		Task<bool> CheckPasswordAsync(ApplicationUser user , string password);
 		Task<IEnumerable<string>> GetUserRolesAsync(ApplicationUser user);
 		Task<IdentityResult> ResetPasswordAsync(ApplicationUser user, string newPassword);
+
+		Task<ApplicationUser?> FindByIdAsync(Guid userId, CancellationToken cancellationToken);
+
+		Task<IdentityResult> IncrementAccessFailedCountAsync(ApplicationUser user);
+		Task<IdentityResult> ResetAccessFailedCountAsync(ApplicationUser user);
+		Task<bool> IsLockedOutAsync(ApplicationUser user);
 	}
 }
-}
+
