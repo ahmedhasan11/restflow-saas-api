@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using RestflowAPI.DTOs.Auth;
 using RestflowAPI.DTOs.Tenants;
+using RestflowAPI.ServiceInterfaces.Auth;
 using RestflowAPI.ServiceInterfaces.Tenants;
 
 namespace RestflowAPI.Controllers
@@ -12,10 +14,12 @@ namespace RestflowAPI.Controllers
 	public class AdminController : ControllerBase
 	{
 		private readonly ITenantService _tenantService;
+		private readonly IAuthService _authService;
 
-		public AdminController(ITenantService tenantService)
+		public AdminController(ITenantService tenantService, IAuthService authService)
 		{
 			_tenantService = tenantService;
+			_authService = authService;
 		}
 
 		[HttpPost("tenants")]
@@ -31,6 +35,19 @@ namespace RestflowAPI.Controllers
 		{
 			var result = await _tenantService.GetAllTenantsAsync(cancellationToken);
 			//lsa m5lsna4 hna
+			return Ok(result);
+		}
+
+		[HttpPost("users")]
+		public async Task<IActionResult> CreateUser([FromBody] CreateUserByAdminDto request, CancellationToken cancellationToken)
+		{
+			var result = await _authService.CreateUserByAdminAsync(request, cancellationToken);
+
+			if (!result.IsSuccess)
+			{
+				return BadRequest(result);
+			}
+
 			return Ok(result);
 		}
 	}

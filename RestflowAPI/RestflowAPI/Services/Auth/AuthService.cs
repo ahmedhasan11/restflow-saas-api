@@ -5,6 +5,7 @@ using RestflowAPI.DTOs.Auth;
 using RestflowAPI.Entities;
 using RestflowAPI.Enums;
 using RestflowAPI.RepositoryInterfaces.Auth;
+using RestflowAPI.RepositoryInterfaces.Tenants;
 using RestflowAPI.ServiceInterfaces.Auth;
 using System.Security.Cryptography;
 using System.Text;
@@ -17,6 +18,7 @@ namespace RestflowAPI.Services.Auth
 		private readonly IRefreshTokenRepository _refreshTokenRepository;
 		private readonly IRefreshTokenService _refreshTokenService;
 		private readonly IJwtService _jwtService;
+		private readonly ITenantRepository _tenantRepository;
 		private readonly IValidator<RegisterRequestDto> _registerValidator;
 		private readonly IValidator<VerifyOtpRequestDto> _verifyOtpValidator;
 		private readonly IValidator<ResendOtpRequestDto> _resendOtpValidator;
@@ -25,6 +27,7 @@ namespace RestflowAPI.Services.Auth
 		private readonly IValidator<ForgotPasswordRequestDto> _forgotPasswordValidator;
 		private readonly IValidator<ResetPasswordRequestDto> _resetPasswordValidator;
 		private readonly IValidator<LogoutRequestDto> _logoutRequestValidator;
+		private readonly IValidator<CreateUserByAdminDto> _createUserByAdminValidator;
 		private readonly ILogger<AuthService> _logger;
 		private readonly IUnitOfWork _unitOfWork;
 		public AuthService(IAuthRepository authRepository, ILogger<AuthService> logger, 
@@ -33,7 +36,8 @@ namespace RestflowAPI.Services.Auth
 			resendOtpValidator, IValidator<LoginRequestDto> loginValidator, IRefreshTokenService refreshTokenService
 			, IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository
 			, IValidator<RefreshTokenRequestDto> refreshTokenValidator, IValidator<ForgotPasswordRequestDto> forgotPasswordValidator
-			, IValidator<ResetPasswordRequestDto> resetPasswordValidator, IValidator<LogoutRequestDto> logoutRequestValidator	)
+			, IValidator<ResetPasswordRequestDto> resetPasswordValidator, IValidator<LogoutRequestDto> logoutRequestValidator
+			, IValidator<CreateUserByAdminDto> createUserByAdminValidator , ITenantRepository tenantRepository)
 		{
 			_authRepository = authRepository;
 			_logger = logger;
@@ -49,6 +53,8 @@ namespace RestflowAPI.Services.Auth
 			_forgotPasswordValidator = forgotPasswordValidator;
 			_resetPasswordValidator = resetPasswordValidator;
 			_logoutRequestValidator = logoutRequestValidator;
+			_createUserByAdminValidator = createUserByAdminValidator;
+			_tenantRepository = tenantRepository;
 		}
 		public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request, CancellationToken cancellationToken)
 		{
@@ -435,6 +441,52 @@ namespace RestflowAPI.Services.Auth
 				TenantId = user.TenantId,
 				Status = user.Status
 			};
+		}
+		public async Task<AuthResponseDto> CreateUserByAdminAsync(CreateUserByAdminDto request, CancellationToken cancellationToken)
+		{
+			var result = await _createUserByAdminValidator.ValidateAsync(request, cancellationToken);
+			if (!result.IsValid)
+			{
+				return AuthResponseDto.Failure(result.Errors.Select(e => e.ErrorMessage));
+			}
+
+			// Verify Tenant Existence (US-17)
+			var tenant = await _tenantRepository.GetByIdAsync(request.TenantId, cancellationToken);
+			if (tenant == null)
+			{
+				return AuthResponseDto.Failure("The specified restaurant (Tenant) does not exist.");
+			}
+
+			var existingEmail = await _authRepository.FindByEmailAsync(request.Email, cancellationToken);
+			if (existingEmail != null)
+				return AuthResponseDto.Failure("Email is already in use.");
+
+			var existingPhone = await _authRepository.FindByPhoneAsync(request.PhoneNumber, cancellationToken);
+			if (existingPhone != null)
+				return AuthResponseDto.Failure("Phone number is already in use.");
+
+
+			ApplicationUser user = new ApplicationUser
+			{
+				UserName = request.Email,
+				Email = request.Email,
+				PhoneNumber = request.PhoneNumber,
+				FullName = request.FullName,
+				TenantId = request.TenantId,
+				Status = UserStatus.Active,
+				EmailConfirmed = true,
+				PhoneNumberConfirmed = true,
+				CreatedAt = DateTime.UtcNow
+			};
+
+			var createResult = await _authRepository.CreateUserAsync(user, request.Password);
+			if (!createResult.Succeeded)
+			{
+				return AuthResponseDto.Failure(createResult.Errors.Select(e => e.Description));
+			}
+			await _authRepository.AddToRoleAsync(user, request.Role.ToString());
+			await _unitOfWork.SaveChangesAsync(cancellationToken);
+			return AuthResponseDto.Success("User created successfully by admin.");
 		}
 	}
 }
