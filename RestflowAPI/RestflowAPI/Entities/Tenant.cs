@@ -12,10 +12,10 @@ public class Tenant : BaseEntity
     public TenantStatus Status { get; set; } = TenantStatus.Active;
     public string? RestaurantLogoUrl { get; set; }
     public string? CuisineType { get; set; }
-    public string Country { get; set; } = string.Empty;
-    public string DefaultLanguage { get; set; } = "en";
-    public string Timezone { get; set; } = "UTC";
-    public string Currency { get; set; } = "USD";
+    //public string Country { get; set; } = string.Empty;
+    //public string DefaultLanguage { get; set; } = "en";
+    //public string Timezone { get; set; } = "UTC";
+    //public string Currency { get; set; } = "USD";
 
     // Navigation Properties
     public ICollection<ApplicationUser> Users { get; set; } = new List<ApplicationUser>();

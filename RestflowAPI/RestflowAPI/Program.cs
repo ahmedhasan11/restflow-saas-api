@@ -6,7 +6,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using RestflowAPI.Data.UnitOfWork;
 using RestflowAPI.Repository.Auth;
+using RestflowAPI.Repository.Tenants;
 using RestflowAPI.RepositoryInterfaces.Auth;
+using RestflowAPI.RepositoryInterfaces.Tenants;
 using RestflowAPI.ServiceInterfaces.Auth;
 using RestflowAPI.ServiceInterfaces.Tenants;
 using RestflowAPI.Services.Auth;
@@ -35,7 +37,9 @@ namespace RestflowAPI
 			builder.Services.AddScoped<IJwtService, JwtService>();
 			builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 			builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
-            
+			builder.Services.AddScoped<ITenantRepository, TenantRepository>();
+			builder.Services.AddScoped<ITenantService, TenantService>();
+
 			// Add services to the container.
 			// Configure Entity Framework Core with SQL Server
 			builder.Services.AddDbContext<RestflowAPI.Data.ApplicationDbContext>(options =>
