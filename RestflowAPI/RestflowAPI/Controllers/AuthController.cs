@@ -103,5 +103,18 @@ namespace RestflowAPI.Controllers
 
 			return Ok(result);
 		}
+
+		[HttpPost("logout")]
+		public async Task<IActionResult> Logout([FromBody] LogoutRequestDto request, CancellationToken cancellationToken)
+		{
+			var result = await _authService.LogoutAsync(request, cancellationToken);
+
+			if (!result.IsSuccess)
+			{
+				return BadRequest(result);
+			}
+
+			return Ok(result);
+		}
 	}
 }

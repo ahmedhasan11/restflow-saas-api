@@ -24,6 +24,7 @@ namespace RestflowAPI.Services.Auth
 		private readonly IValidator<RefreshTokenRequestDto> _refreshTokenValidator;
 		private readonly IValidator<ForgotPasswordRequestDto> _forgotPasswordValidator;
 		private readonly IValidator<ResetPasswordRequestDto> _resetPasswordValidator;
+		private readonly IValidator<LogoutRequestDto> _logoutRequestValidator;
 		private readonly ILogger<AuthService> _logger;
 		private readonly IUnitOfWork _unitOfWork;
 		public AuthService(IAuthRepository authRepository, ILogger<AuthService> logger, 
@@ -32,7 +33,7 @@ namespace RestflowAPI.Services.Auth
 			resendOtpValidator, IValidator<LoginRequestDto> loginValidator, IRefreshTokenService refreshTokenService
 			, IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository
 			, IValidator<RefreshTokenRequestDto> refreshTokenValidator, IValidator<ForgotPasswordRequestDto> forgotPasswordValidator
-			, IValidator<ResetPasswordRequestDto> resetPasswordValidator)
+			, IValidator<ResetPasswordRequestDto> resetPasswordValidator, IValidator<LogoutRequestDto> logoutRequestValidator	)
 		{
 			_authRepository = authRepository;
 			_logger = logger;
@@ -47,6 +48,7 @@ namespace RestflowAPI.Services.Auth
 			_refreshTokenValidator = refreshTokenValidator;
 			_forgotPasswordValidator = forgotPasswordValidator;
 			_resetPasswordValidator = resetPasswordValidator;
+			_logoutRequestValidator = logoutRequestValidator;
 		}
 		public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request, CancellationToken cancellationToken)
 		{
@@ -189,6 +191,11 @@ namespace RestflowAPI.Services.Auth
 			if (request.Channel == ChannelType.Phone && user.PhoneNumberConfirmed)
 				return AuthResponseDto.Failure("Phone is already verified.");
 
+			var lastOtp = await _authRepository.GetLatestOtpAsync(user.Id, request.Channel, cancellationToken);
+			if (lastOtp!=null && lastOtp.CreatedAt.AddMinutes(1) > DateTime.UtcNow)
+			{
+				return AuthResponseDto.Failure("Please wait a minute before requesting a new OTP.");
+			}
 			await _authRepository.InvalidateOldOtpsAsync(user.Id, request.Channel, cancellationToken);
 			await GenerateAndSaveOtp(user.Id, request.Channel, cancellationToken);
 			await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -321,22 +328,24 @@ namespace RestflowAPI.Services.Auth
 				return AuthResponseDto.Failure(result.Errors.Select(e => e.ErrorMessage));
 			}
 			var user = await _authRepository.FindByIdentifierAsync(request.Identifier, cancellationToken);
-			if (user == null)
+
+			// SRS 3.6 - Generic response for security
+			if (user != null && user.Status == UserStatus.Active)
 			{
-				return AuthResponseDto.Failure("User not found.");
+				ChannelType channel = request.Identifier.Contains("@") ? ChannelType.Email : ChannelType.Phone;
+
+				// SRS 3.2 - Check resend interval (1 minute)
+				var lastOtp = await _authRepository.GetLatestOtpAsync(user.Id, channel, cancellationToken);
+				if (lastOtp != null && lastOtp.CreatedAt.AddMinutes(1) > DateTime.UtcNow)
+				{
+					return AuthResponseDto.Failure("Please wait a minute before requesting another reset code.");
+				}
+
+				await _authRepository.InvalidateOldOtpsAsync(user.Id, channel, cancellationToken);
+				await GenerateAndSaveOtp(user.Id, channel, cancellationToken);
+				await _unitOfWork.SaveChangesAsync(cancellationToken);
 			}
-
-			if (user.Status != UserStatus.Active)
-			{
-				return AuthResponseDto.Failure("User account is inactive.");
-			}
-
-			ChannelType channel = request.Identifier.Contains("@") ? ChannelType.Email : ChannelType.Phone;
-
-			await _authRepository.InvalidateOldOtpsAsync(user.Id, channel, cancellationToken);
-			await GenerateAndSaveOtp(user.Id, channel, cancellationToken);
-			await _unitOfWork.SaveChangesAsync(cancellationToken);
-			return AuthResponseDto.Success("A reset code has been sent to your chosen channel.");
+			return AuthResponseDto.Success("If an account exists, a reset code has been sent.");
 		}
 		public async Task<AuthResponseDto> ResetPasswordAsync(ResetPasswordRequestDto request, CancellationToken cancellationToken)
 		{
@@ -377,6 +386,25 @@ namespace RestflowAPI.Services.Auth
 			await _refreshTokenRepository.RevokeAllUserRefreshTokensAsync(user.Id, cancellationToken);
 			await _unitOfWork.SaveChangesAsync(cancellationToken);
 			return AuthResponseDto.Success("Password reset successfully.");
+		}
+		public async Task<AuthResponseDto> LogoutAsync(LogoutRequestDto request, CancellationToken cancellationToken)
+		{
+		   var result = await _logoutRequestValidator.ValidateAsync(request, cancellationToken);
+			if (!result.IsValid)
+			{
+				return AuthResponseDto.Failure(result.Errors.Select(e => e.ErrorMessage));
+			}
+			var refreshTokenHash = HashOtp(request.RefreshToken);
+			var storedToken = await _refreshTokenRepository.GetRefreshTokenAsync(refreshTokenHash, cancellationToken);
+			if(storedToken == null || storedToken.IsRevoked || storedToken.ExpiresAt < DateTime.UtcNow )
+			{
+				return AuthResponseDto.Failure("Invalid or expired refresh token.");
+			}
+			storedToken.IsRevoked = true;
+			await _refreshTokenRepository.RevokeAllUserRefreshTokensAsync(storedToken.UserId, cancellationToken);
+			await _unitOfWork.SaveChangesAsync(cancellationToken);
+			return AuthResponseDto.Success("Logged out successfully.");
+
 		}
 	}
 }
