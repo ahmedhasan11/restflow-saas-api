@@ -27,6 +27,8 @@ namespace RestflowAPI.RepositoryInterfaces.Auth
 		Task<IdentityResult> IncrementAccessFailedCountAsync(ApplicationUser user);
 		Task<IdentityResult> ResetAccessFailedCountAsync(ApplicationUser user);
 		Task<bool> IsLockedOutAsync(ApplicationUser user);
-	}
+
+		Task<IdentityResult> ChangePasswordAsync(ApplicationUser user , string currentPassword, string newPassword);
+	} 
 }
 

@@ -66,6 +66,8 @@ namespace RestflowAPI.Controllers
 
 			return Ok(result);
 		}
+
+		[Authorize]
 		[HttpPost("refresh-token")]
 		public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequestDto request, CancellationToken cancellationToken)
 		{
@@ -106,6 +108,7 @@ namespace RestflowAPI.Controllers
 		}
 
 		[HttpPost("logout")]
+		[Authorize]
 		public async Task<IActionResult> Logout([FromBody] LogoutRequestDto request, CancellationToken cancellationToken)
 		{
 			var result = await _authService.LogoutAsync(request, cancellationToken);
@@ -135,6 +138,18 @@ namespace RestflowAPI.Controllers
 			}
 
 			return Ok(result);
+		}
+
+		[HttpPost("change-password")]
+		[Authorize]   // any authenticated user can call this for his own account
+		public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto request,
+												CancellationToken cancellationToken)
+		{
+			var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+			if (!Guid.TryParse(userIdString, out var userId))
+				return Unauthorized();
+			var result = await _authService.ChangePasswordAsync(userId, request, cancellationToken);
+			return result.IsSuccess ? Ok(result) : BadRequest(result);
 		}
 	}
 }

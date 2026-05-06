@@ -1,0 +1,21 @@
+﻿using FluentValidation;
+
+namespace RestflowAPI.Validators.AuthValidators
+{
+	public class ChangePasswordDtoValidator:AbstractValidator<ChangePasswordDto>
+	{
+		public ChangePasswordDtoValidator()
+		{
+			RuleFor(x => x.CurrentPassword)
+				.NotEmpty().WithMessage("Current password is required.");
+
+			RuleFor(x => x.NewPassword)
+				.NotEmpty().WithMessage("New password is required.")
+				.MinimumLength(5).WithMessage("Password must be at least 5 characters.");
+
+			RuleFor(x => x.ConfirmNewPassword)
+				.Equal(x => x.NewPassword)
+				.WithMessage("New password and confirmation do not match.");
+		}
+	}
+}

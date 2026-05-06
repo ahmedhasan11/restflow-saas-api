@@ -124,5 +124,10 @@ namespace RestflowAPI.Repository.Auth
 		{
 			return await _userManager.IsLockedOutAsync(user);
 		}
+
+		public async Task<IdentityResult> ChangePasswordAsync(ApplicationUser user, string currentPassword, string newPassword)
+		{
+			return await _userManager.ChangePasswordAsync(user, currentPassword, newPassword);
+		}
 	}
 }

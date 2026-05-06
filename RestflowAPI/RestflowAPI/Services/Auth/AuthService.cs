@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.Data;
 using RestflowAPI.Data.UnitOfWork;
 using RestflowAPI.DTOs.Auth;
@@ -28,8 +29,10 @@ namespace RestflowAPI.Services.Auth
 		private readonly IValidator<ResetPasswordRequestDto> _resetPasswordValidator;
 		private readonly IValidator<LogoutRequestDto> _logoutRequestValidator;
 		private readonly IValidator<CreateUserByAdminDto> _createUserByAdminValidator;
+		private readonly IValidator<ChangePasswordDto> _changePasswordValidator;
 		private readonly ILogger<AuthService> _logger;
 		private readonly IUnitOfWork _unitOfWork;
+
 		public AuthService(IAuthRepository authRepository, ILogger<AuthService> logger, 
 			IValidator<RegisterRequestDto> registerValidator, IUnitOfWork unitOfWork,
 			IValidator<VerifyOtpRequestDto> verifyOtpValidator, IValidator<ResendOtpRequestDto>
@@ -37,7 +40,7 @@ namespace RestflowAPI.Services.Auth
 			, IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository
 			, IValidator<RefreshTokenRequestDto> refreshTokenValidator, IValidator<ForgotPasswordRequestDto> forgotPasswordValidator
 			, IValidator<ResetPasswordRequestDto> resetPasswordValidator, IValidator<LogoutRequestDto> logoutRequestValidator
-			, IValidator<CreateUserByAdminDto> createUserByAdminValidator , ITenantRepository tenantRepository)
+			, IValidator<CreateUserByAdminDto> createUserByAdminValidator, ITenantRepository tenantRepository, IValidator<ChangePasswordDto> changePasswordValidator
 		{
 			_authRepository = authRepository;
 			_logger = logger;
@@ -55,6 +58,7 @@ namespace RestflowAPI.Services.Auth
 			_logoutRequestValidator = logoutRequestValidator;
 			_createUserByAdminValidator = createUserByAdminValidator;
 			_tenantRepository = tenantRepository;
+			_changePasswordValidator = changePasswordValidator;
 		}
 		public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request, CancellationToken cancellationToken)
 		{
@@ -487,6 +491,34 @@ namespace RestflowAPI.Services.Auth
 			await _authRepository.AddToRoleAsync(user, request.Role.ToString());
 			await _unitOfWork.SaveChangesAsync(cancellationToken);
 			return AuthResponseDto.Success("User created successfully by admin.");
+		}
+
+		public async Task<AuthResponseDto> ChangePasswordAsync(Guid userId, ChangePasswordDto request, CancellationToken cancellationToken)
+		{
+			// 1️⃣ Validate DTO
+			var validation = await _changePasswordValidator.ValidateAsync(request, cancellationToken);
+			if (!validation.IsValid)
+				return AuthResponseDto.Failure(validation.Errors.Select(e => e.ErrorMessage));
+
+			// 2️⃣ Load user
+			var user = await _authRepository.FindByIdAsync(userId, cancellationToken);
+			if (user == null || user.Status!=UserStatus.Active)
+				return AuthResponseDto.Failure("User not found.");
+
+			// 3️⃣ Verify current password
+			var currentValid = await _authRepository.CheckPasswordAsync(user, request.CurrentPassword);
+			if (!currentValid)
+				return AuthResponseDto.Failure("Current password is incorrect.");
+
+			// 4️⃣ Change password (Identity handles hashing & persistence)
+			var result = await _authRepository.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
+			if (!result.Succeeded)
+				return AuthResponseDto.Failure(result.Errors.Select(e => e.Description));
+
+			// 5️⃣ Optional: revoke all refresh tokens so the user must re‑login
+			await _refreshTokenRepository.RevokeAllUserRefreshTokensAsync(user.Id, cancellationToken);
+			await _unitOfWork.SaveChangesAsync(cancellationToken);
+			return AuthResponseDto.Success("Password changed successfully.");
 		}
 	}
 }
