@@ -43,12 +43,6 @@ namespace RestflowAPI.Controllers
 		public async Task<IActionResult> CreateUser([FromBody] CreateUserByAdminDto request, CancellationToken cancellationToken)
 		{
 			var result = await _authService.CreateUserByAdminAsync(request, cancellationToken);
-
-			if (!result.IsSuccess)
-			{
-				return BadRequest(result);
-			}
-
 			return Ok(result);
 		}
 	}

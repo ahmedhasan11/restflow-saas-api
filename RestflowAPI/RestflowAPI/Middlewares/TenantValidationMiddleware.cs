@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using RestflowAPI.Data;
 using RestflowAPI.Enums;
+using RestflowAPI.Exceptions;
 using RestflowAPI.ServiceInterfaces.Tenants;
 
 namespace RestflowAPI.Middlewares
@@ -27,16 +28,12 @@ namespace RestflowAPI.Middlewares
 
 				if (tenant == null)
 				{
-					context.Response.StatusCode = StatusCodes.Status403Forbidden;
-					await context.Response.WriteAsJsonAsync(new { Message = "The specified Tenant does not exist." });
-					return; // Stop processing the request
+					throw new ForbiddenException("The specified Tenant does not exist.");
 				}
 
 				if (tenant.Status != TenantStatus.Active)
 				{
-					context.Response.StatusCode = StatusCodes.Status403Forbidden;
-					await context.Response.WriteAsJsonAsync(new { Message = $"This Tenant is currently {tenant.Status} and cannot accept requests." });
-					return; // Stop processing the request
+					throw new ForbiddenException($"This Tenant is currently {tenant.Status} and cannot accept requests.");
 				}
 			}
 

@@ -6,6 +6,7 @@ using RestflowAPI.DTOs.Auth;
 using RestflowAPI.Entities;
 using RestflowAPI.Enums;
 using RestflowAPI.RepositoryInterfaces.Auth;
+using RestflowAPI.Exceptions;
 using RestflowAPI.RepositoryInterfaces.Tenants;
 using RestflowAPI.ServiceInterfaces.Auth;
 using System.Security.Cryptography;
@@ -40,7 +41,7 @@ namespace RestflowAPI.Services.Auth
 			, IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository
 			, IValidator<RefreshTokenRequestDto> refreshTokenValidator, IValidator<ForgotPasswordRequestDto> forgotPasswordValidator
 			, IValidator<ResetPasswordRequestDto> resetPasswordValidator, IValidator<LogoutRequestDto> logoutRequestValidator
-			, IValidator<CreateUserByAdminDto> createUserByAdminValidator, ITenantRepository tenantRepository, IValidator<ChangePasswordDto> changePasswordValidator
+			, IValidator<CreateUserByAdminDto> createUserByAdminValidator, ITenantRepository tenantRepository, IValidator<ChangePasswordDto> changePasswordValidator)
 		{
 			_authRepository = authRepository;
 			_logger = logger;
@@ -66,19 +67,19 @@ namespace RestflowAPI.Services.Auth
 			var validationResult = await _registerValidator.ValidateAsync(request, cancellationToken);
 			if (!validationResult.IsValid)
 			{
-				return AuthResponseDto.Failure(validationResult.Errors.Select(e => e.ErrorMessage));
+				throw new AppValidationException(validationResult.Errors.Select(e=>e.ErrorMessage));
 			}
 			//validate if email registered
 			var existingEmail = await _authRepository.FindByEmailAsync(request.Email, cancellationToken);
 			if (existingEmail != null)
 			{
-				return AuthResponseDto.Failure("Email is already in use.");
+				throw new ConflictException("Email is already in use.");
 			}
 			//validate if phone registered
 			var existingPhone = await _authRepository.FindByPhoneAsync(request.PhoneNumber, cancellationToken);
 			if (existingPhone != null)
 			{
-				return AuthResponseDto.Failure("Phone number is already in use.");
+				throw new ConflictException("Phone number is already in use.");
 			}
 
 			//create user
@@ -95,16 +96,14 @@ namespace RestflowAPI.Services.Auth
 			var result = await _authRepository.CreateUserAsync(user, request.Password);
 			if (!result.Succeeded)
 			{
-				_logger.LogWarning("User creation failed: {Errors}", string.Join(", ", result.Errors.Select(e => e.Description)));
-				return AuthResponseDto.Failure(result.Errors.Select(e => e.Description));
+				throw new AppValidationException(result.Errors.Select(e => e.Description));
 			}
 
 			//assign role
 			var roleResult = await _authRepository.AddToRoleAsync(user, UserRole.Owner.ToString());
 			if (!roleResult.Succeeded)
 			{
-				_logger.LogWarning("Role assignment failed: {Errors}", string.Join(", ", roleResult.Errors.Select(e => e.Description)));
-				return AuthResponseDto.Failure(roleResult.Errors.Select(e => e.Description));
+				throw new AppValidationException(roleResult.Errors.Select(e => e.Description));
 			}
 
 
@@ -142,25 +141,25 @@ namespace RestflowAPI.Services.Auth
 			var result = await _verifyOtpValidator.ValidateAsync(request, cancellationToken);	
 			if (!result.IsValid)
 			{
-				return AuthResponseDto.Failure(result.Errors.Select(e => e.ErrorMessage));
+				throw new AppValidationException(result.Errors.Select(e => e.ErrorMessage));
 			}
 			var user = await _authRepository.FindByEmailAsync(request.Email, cancellationToken);
 			if (user==null)
 			{
-				return AuthResponseDto.Failure("User not found.");
+				throw new NotFoundException("User not found.");
 			}
 			var otp = await _authRepository.GetLatestOtpAsync(user.Id, request.Channel, cancellationToken);
 			if (otp == null)
 			{
-				return AuthResponseDto.Failure("No OTP found for the specified channel.");
+				throw new NotFoundException("No active OTP found.");
 			}
 			if (otp.OtpCodeHash != HashOtp(request.Code))
 			{
-				return AuthResponseDto.Failure("Invalid OTP code.");
+				throw new AppValidationException("Invalid OTP code.");
 			}
 			if (otp.ExpiresAt < DateTime.UtcNow)
 			{
-				return AuthResponseDto.Failure("OTP has expired.");
+				throw new AppValidationException("OTP code has expired.");
 			}
 			if (otp.ChannelType==ChannelType.Email)
 			{
@@ -187,24 +186,24 @@ namespace RestflowAPI.Services.Auth
 			if (!result.IsValid)
 
 			{
-				return AuthResponseDto.Failure(result.Errors.Select(e => e.ErrorMessage));
+				throw new AppValidationException(result.Errors.Select(e => e.ErrorMessage));
 			}
 			var user = await _authRepository.FindByEmailAsync(request.Email, cancellationToken);
 			if (user == null)
 			{
-				return AuthResponseDto.Failure("User not found.");
+				throw new NotFoundException("User not found.");
 			}
 
 			if (request.Channel == ChannelType.Email && user.EmailConfirmed)
-				return AuthResponseDto.Failure("Email is already verified.");
+				throw new ConflictException("Email is already verified.");
 
 			if (request.Channel == ChannelType.Phone && user.PhoneNumberConfirmed)
-				return AuthResponseDto.Failure("Phone is already verified.");
+				throw new ConflictException("Phone is already verified.");
 
 			var lastOtp = await _authRepository.GetLatestOtpAsync(user.Id, request.Channel, cancellationToken);
 			if (lastOtp!=null && lastOtp.CreatedAt.AddMinutes(1) > DateTime.UtcNow)
 			{
-				return AuthResponseDto.Failure("Please wait a minute before requesting a new OTP.");
+				throw new ConflictException("Please wait a minute before requesting another OTP.");
 			}
 			await _authRepository.InvalidateOldOtpsAsync(user.Id, request.Channel, cancellationToken);
 			await GenerateAndSaveOtp(user.Id, request.Channel, cancellationToken);
@@ -216,27 +215,27 @@ namespace RestflowAPI.Services.Auth
 			var result = await _loginValidator.ValidateAsync(request, cancellationToken);
 			if (!result.IsValid)
 			{
-				return AuthResponseDto.Failure(result.Errors.Select(e => e.ErrorMessage));
+				throw new AppValidationException(result.Errors.Select(e => e.ErrorMessage));
 			}	
 			var user = await _authRepository.FindByIdentifierAsync(request.Email, cancellationToken);
 			if (user == null) 
 			{
-				return AuthResponseDto.Failure("Invalid credentials.");
+				throw new UnauthorizedException("Invalid credentials.");
 			}
 			if (await _authRepository.IsLockedOutAsync(user))
 			{
-				return AuthResponseDto.Failure("Account is temporarily blocked due to repeated failed login attempts. Please try again in 15 minutes.");
+				throw new UnauthorizedException("Account is temporarily blocked due to repeated failed login attempts. Please try again in 15 minutes.");
 			}
 			var isPasswordValid = await _authRepository.CheckPasswordAsync(user, request.Password);
 			if (!isPasswordValid)
 			{
 				await _authRepository.IncrementAccessFailedCountAsync(user);
-				return AuthResponseDto.Failure("Invalid credentials.");
+				throw new UnauthorizedException("Invalid credentials.");
 			}
 
 			if (user.Status != UserStatus.Active)
 			{
-				return AuthResponseDto.Failure("User account is not active.Please verify your email and phone.");
+				throw new UnauthorizedException("Account is not active. Please verify your email and phone.");
 			}
 			// Reset failed attempts on success
 			await _authRepository.ResetAccessFailedCountAsync(user);
@@ -247,7 +246,7 @@ namespace RestflowAPI.Services.Auth
 			{
 				if (user.Tenant?.Status==TenantStatus.Inactive)
 				{
-					return AuthResponseDto.Failure("Your restaurant account is inactive. Please contact support.");
+					throw new UnauthorizedException("Your restaurant account is inactive. Please contact support.");
 				}
 			}
 			JwtUserDataDto jwtUserData = new JwtUserDataDto
@@ -283,19 +282,19 @@ namespace RestflowAPI.Services.Auth
 			var result = await _refreshTokenValidator.ValidateAsync(request, cancellationToken);	
 			if (!result.IsValid)
 			{
-				return AuthResponseDto.Failure(result.Errors.Select(e => e.ErrorMessage));
+				throw new AppValidationException(result.Errors.Select(e => e.ErrorMessage));
 			}	
 
 			var recievedTokenHash = HashOtp(request.RefreshToken);
 			var storedToken = await _refreshTokenRepository.GetRefreshTokenAsync(recievedTokenHash, cancellationToken);
 			if (storedToken==null || storedToken.IsRevoked || storedToken.ExpiresAt<DateTime.UtcNow)
 			{
-				return AuthResponseDto.Failure("Invalid or expired refresh token.");
+				throw new UnauthorizedException("Invalid or expired refresh token.");
 			}
 			var user = storedToken.User;
 			if (user == null)
 			{
-				return AuthResponseDto.Failure("User not found.");
+				if (user == null) throw new Exceptions.UnauthorizedException("User session invalid.");
 			}
 			var roles = await _authRepository.GetUserRolesAsync(user);
 			
@@ -304,7 +303,7 @@ namespace RestflowAPI.Services.Auth
 			{
 				if (user.Tenant?.Status == TenantStatus.Inactive)
 				{
-					return AuthResponseDto.Failure("User's tenant is inactive.");
+					throw new Exceptions.UnauthorizedException("Your restaurant account is inactive.");
 				}
 			}
 
@@ -337,12 +336,39 @@ namespace RestflowAPI.Services.Auth
 			return AuthResponseDto.Success("Session refreshed successfully.", jwtResult.Token, newRawRefreshToken, jwtResult.ExpiresAt);
 
 		}
+		public async Task<AuthResponseDto> ChangePasswordAsync(Guid userId, ChangePasswordDto request, CancellationToken cancellationToken)
+		{
+			// 1️⃣ Validate DTO
+			var validation = await _changePasswordValidator.ValidateAsync(request, cancellationToken);
+			if (!validation.IsValid)
+				return AuthResponseDto.Failure(validation.Errors.Select(e => e.ErrorMessage));
+
+			// 2️⃣ Load user
+			var user = await _authRepository.FindByIdAsync(userId, cancellationToken);
+			if (user == null || user.Status != UserStatus.Active)
+				return AuthResponseDto.Failure("User not found.");
+
+			// 3️⃣ Verify current password
+			var currentValid = await _authRepository.CheckPasswordAsync(user, request.CurrentPassword);
+			if (!currentValid)
+				return AuthResponseDto.Failure("Current password is incorrect.");
+
+			// 4️⃣ Change password (Identity handles hashing & persistence)
+			var result = await _authRepository.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
+			if (!result.Succeeded)
+				return AuthResponseDto.Failure(result.Errors.Select(e => e.Description));
+
+			// 5️⃣ Optional: revoke all refresh tokens so the user must re‑login
+			await _refreshTokenRepository.RevokeAllUserRefreshTokensAsync(user.Id, cancellationToken);
+			await _unitOfWork.SaveChangesAsync(cancellationToken);
+			return AuthResponseDto.Success("Password changed successfully.");
+		}
 		public async Task<AuthResponseDto> ForgotPasswordAsync(ForgotPasswordRequestDto request, CancellationToken cancellationToken)
 		{
 			var result = await _forgotPasswordValidator.ValidateAsync(request, cancellationToken);
 			if (!result.IsValid)
 			{
-				return AuthResponseDto.Failure(result.Errors.Select(e => e.ErrorMessage));
+				throw new Exceptions.AppValidationException(result.Errors.Select(e => e.ErrorMessage));
 			}
 			var user = await _authRepository.FindByIdentifierAsync(request.Identifier, cancellationToken);
 
@@ -355,7 +381,7 @@ namespace RestflowAPI.Services.Auth
 				var lastOtp = await _authRepository.GetLatestOtpAsync(user.Id, channel, cancellationToken);
 				if (lastOtp != null && lastOtp.CreatedAt.AddMinutes(1) > DateTime.UtcNow)
 				{
-					return AuthResponseDto.Failure("Please wait a minute before requesting another reset code.");
+					throw new Exceptions.ConflictException("Please wait a minute before requesting another reset code.");
 				}
 
 				await _authRepository.InvalidateOldOtpsAsync(user.Id, channel, cancellationToken);
@@ -369,32 +395,32 @@ namespace RestflowAPI.Services.Auth
 			var result = await _resetPasswordValidator.ValidateAsync(request, cancellationToken);
 			if (!result.IsValid)
 			{
-				return AuthResponseDto.Failure(result.Errors.Select(e => e.ErrorMessage));
+				throw new Exceptions.AppValidationException(result.Errors.Select(e => e.ErrorMessage));
 			}
 
 			var user = await _authRepository.FindByIdentifierAsync(request.Identifier, cancellationToken);
 			if (user == null)
 			{
-				return AuthResponseDto.Failure("User not found.");
+				throw new Exceptions.NotFoundException("User not found.");
 			}
 
 			// Security check: ensure account is active during reset
 			if (user.Status != UserStatus.Active)
 			{
-				return AuthResponseDto.Failure("Account is not active.");
+				throw new Exceptions.AppValidationException("Account is not active.");
 			}
 			ChannelType channel = request.Identifier.Contains("@") ? ChannelType.Email : ChannelType.Phone;
 
 			var otp = await _authRepository.GetLatestOtpAsync(user.Id, channel, cancellationToken);
 			if (otp == null || otp.IsUsed || otp.ExpiresAt < DateTime.UtcNow || otp.OtpCodeHash != HashOtp(request.OtpCode))
 			{
-				return AuthResponseDto.Failure("Invalid or expired reset code.");
+				throw new Exceptions.AppValidationException("Invalid or expired reset code.");
 			}
 
 			var resetResult = await _authRepository.ResetPasswordAsync(user, request.NewPassword);
 			if (!resetResult.Succeeded)
 			{
-				return AuthResponseDto.Failure(resetResult.Errors.Select(e => e.Description));
+				throw new Exceptions.AppValidationException(resetResult.Errors.Select(e => e.Description));
 			}
 
 			otp.IsUsed = true;
@@ -409,13 +435,13 @@ namespace RestflowAPI.Services.Auth
 		   var result = await _logoutRequestValidator.ValidateAsync(request, cancellationToken);
 			if (!result.IsValid)
 			{
-				return AuthResponseDto.Failure(result.Errors.Select(e => e.ErrorMessage));
+				throw new Exceptions.AppValidationException(result.Errors.Select(e => e.ErrorMessage));
 			}
 			var refreshTokenHash = HashOtp(request.RefreshToken);
 			var storedToken = await _refreshTokenRepository.GetRefreshTokenAsync(refreshTokenHash, cancellationToken);
 			if(storedToken == null || storedToken.IsRevoked || storedToken.ExpiresAt < DateTime.UtcNow )
 			{
-				return AuthResponseDto.Failure("Invalid or expired refresh token.");
+				throw new Exceptions.UnauthorizedException("Invalid or expired refresh token.");
 			}
 			await _refreshTokenRepository.RevokeAllUserRefreshTokensAsync(storedToken.UserId, cancellationToken);
 			await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -431,7 +457,7 @@ namespace RestflowAPI.Services.Auth
 			var user = await _authRepository.FindByIdAsync(userId, cancellationToken);
 			if (user == null || user.Status != UserStatus.Active)
 			{
-				return null;
+				throw new Exceptions.UnauthorizedException("User not found or inactive.");
 			}
 			var roles = await _authRepository.GetUserRolesAsync(user);
 
@@ -451,23 +477,23 @@ namespace RestflowAPI.Services.Auth
 			var result = await _createUserByAdminValidator.ValidateAsync(request, cancellationToken);
 			if (!result.IsValid)
 			{
-				return AuthResponseDto.Failure(result.Errors.Select(e => e.ErrorMessage));
+				throw new Exceptions.AppValidationException(result.Errors.Select(e => e.ErrorMessage));
 			}
 
 			// Verify Tenant Existence (US-17)
 			var tenant = await _tenantRepository.GetByIdAsync(request.TenantId, cancellationToken);
 			if (tenant == null)
 			{
-				return AuthResponseDto.Failure("The specified restaurant (Tenant) does not exist.");
+				throw new Exceptions.NotFoundException("The specified restaurant (Tenant) does not exist.");
 			}
 
 			var existingEmail = await _authRepository.FindByEmailAsync(request.Email, cancellationToken);
 			if (existingEmail != null)
-				return AuthResponseDto.Failure("Email is already in use.");
+				throw new Exceptions.ConflictException("Email is already in use.");
 
 			var existingPhone = await _authRepository.FindByPhoneAsync(request.PhoneNumber, cancellationToken);
 			if (existingPhone != null)
-				return AuthResponseDto.Failure("Phone number is already in use.");
+				throw new Exceptions.ConflictException("Phone number is already in use.");
 
 
 			ApplicationUser user = new ApplicationUser
@@ -486,39 +512,12 @@ namespace RestflowAPI.Services.Auth
 			var createResult = await _authRepository.CreateUserAsync(user, request.Password);
 			if (!createResult.Succeeded)
 			{
-				return AuthResponseDto.Failure(createResult.Errors.Select(e => e.Description));
+				throw new Exceptions.AppValidationException(createResult.Errors.Select(e => e.Description));
 			}
 			await _authRepository.AddToRoleAsync(user, request.Role.ToString());
 			await _unitOfWork.SaveChangesAsync(cancellationToken);
 			return AuthResponseDto.Success("User created successfully by admin.");
 		}
 
-		public async Task<AuthResponseDto> ChangePasswordAsync(Guid userId, ChangePasswordDto request, CancellationToken cancellationToken)
-		{
-			// 1️⃣ Validate DTO
-			var validation = await _changePasswordValidator.ValidateAsync(request, cancellationToken);
-			if (!validation.IsValid)
-				return AuthResponseDto.Failure(validation.Errors.Select(e => e.ErrorMessage));
-
-			// 2️⃣ Load user
-			var user = await _authRepository.FindByIdAsync(userId, cancellationToken);
-			if (user == null || user.Status!=UserStatus.Active)
-				return AuthResponseDto.Failure("User not found.");
-
-			// 3️⃣ Verify current password
-			var currentValid = await _authRepository.CheckPasswordAsync(user, request.CurrentPassword);
-			if (!currentValid)
-				return AuthResponseDto.Failure("Current password is incorrect.");
-
-			// 4️⃣ Change password (Identity handles hashing & persistence)
-			var result = await _authRepository.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
-			if (!result.Succeeded)
-				return AuthResponseDto.Failure(result.Errors.Select(e => e.Description));
-
-			// 5️⃣ Optional: revoke all refresh tokens so the user must re‑login
-			await _refreshTokenRepository.RevokeAllUserRefreshTokensAsync(user.Id, cancellationToken);
-			await _unitOfWork.SaveChangesAsync(cancellationToken);
-			return AuthResponseDto.Success("Password changed successfully.");
-		}
 	}
 }

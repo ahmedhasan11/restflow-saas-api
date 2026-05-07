@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using RestflowAPI.DTOs.Auth;
 
 namespace RestflowAPI.Validators.AuthValidators
 {

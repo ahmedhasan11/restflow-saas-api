@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using RestflowAPI.Exceptions;
+using System.Net;
 using System.Text.Json;
 
 namespace RestflowAPI.Middlewares
@@ -28,22 +29,31 @@ namespace RestflowAPI.Middlewares
 				await HandleExceptionAsync(context, ex);
 			}
 		}
-
 		private async Task HandleExceptionAsync(HttpContext context, Exception exception)
 		{
 			context.Response.ContentType = "application/json";
 
-			// Default to 500 Internal Server Error
-			context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+			var response = new ErrorResponse();
 
-			var response = new ErrorResponse
+			if (exception is BaseException baseEx)
 			{
-				StatusCode = context.Response.StatusCode,
-				Message = "An internal server error occurred. Please try again later.",
-				DetailedMessage = _env.IsDevelopment() ? exception.Message : null,
-				StackTrace = _env.IsDevelopment() ? exception.StackTrace : null
-			};
+				context.Response.StatusCode = (int)baseEx.StatusCode;
+				response.StatusCode = context.Response.StatusCode;
+				response.Message = baseEx.Message;
+				response.Errors = baseEx.Errors;
+			}
+			else
+			{
+				context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+				response.StatusCode = context.Response.StatusCode;
+				response.Message = "An unexpected error occurred. Please try again later.";
+				response.DetailedMessage = _env.IsDevelopment() ? exception.Message : null;
+			}
 
+			if (_env.IsDevelopment())
+			{
+				response.StackTrace = exception.StackTrace;
+			}
 			// You can add logic here to handle specific exception types (e.g., UnauthorizedAccessException, etc.)
 			// For now, it handles everything as a general error.
 
@@ -53,11 +63,11 @@ namespace RestflowAPI.Middlewares
 			await context.Response.WriteAsync(json);
 		}
 	}
-
 	public class ErrorResponse
 	{
 		public int StatusCode { get; set; }
 		public string Message { get; set; } = string.Empty;
+		public IEnumerable<string>? Errors { get; set; }
 		public string? DetailedMessage { get; set; }
 		public string? StackTrace { get; set; }
 	}

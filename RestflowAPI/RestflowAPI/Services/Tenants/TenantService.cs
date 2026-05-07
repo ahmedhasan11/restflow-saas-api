@@ -2,6 +2,7 @@
 using RestflowAPI.Data.UnitOfWork;
 using RestflowAPI.DTOs.Tenants;
 using RestflowAPI.Entities;
+using RestflowAPI.Exceptions;
 using RestflowAPI.RepositoryInterfaces.Tenants;
 using RestflowAPI.ServiceInterfaces.Tenants;
 
@@ -30,7 +31,7 @@ namespace RestflowAPI.Services.Tenants
 
 			if(existingTenant != null)
 			{
-				throw new Exception("Tenant with the same code already exists.");  //Custom Exception
+				throw new ConflictException($"Tenant with code '{request.TenantCode}' already exists.");
 			}
 
 			Tenant tenant = new Tenant

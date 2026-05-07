@@ -25,12 +25,15 @@ namespace RestflowAPI
         {
             var builder = WebApplication.CreateBuilder(args);
 
-			// Configure JWT Settings
+			#region Configure JWT Settings
 			var jwtSettings = new JwtSettings();
 			builder.Configuration.GetSection("Jwt").Bind(jwtSettings);
 			builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
-			// Add Tenant Services
+			#endregion
+
 			builder.Services.AddHttpContextAccessor();
+
+			#region Services Registration
 			builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 			builder.Services.AddScoped<IAuthService, AuthService>();
 			builder.Services.AddScoped<ICurrentTenantService,CurrentTenantService>();
@@ -40,12 +43,14 @@ namespace RestflowAPI
 			builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 			builder.Services.AddScoped<ITenantRepository, TenantRepository>();
 			builder.Services.AddScoped<ITenantService, TenantService>();
+			#endregion
 
-			// Add services to the container.
-			// Configure Entity Framework Core with SQL Server
+
+			#region DbContext Configuration with Identity
+
 			builder.Services.AddDbContext<RestflowAPI.Data.ApplicationDbContext>(options =>
 				options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-			// Add Identity
+
 			builder.Services.AddIdentity<RestflowAPI.Entities.ApplicationUser, RestflowAPI.Entities.ApplicationRole>(options => {
 				options.Password.RequiredLength = 5;
 				options.Password.RequireUppercase = false;
@@ -61,8 +66,12 @@ namespace RestflowAPI
 			})
 			.AddEntityFrameworkStores<RestflowAPI.Data.ApplicationDbContext>()
 			.AddDefaultTokenProviders();
+			#endregion
 
-			// Configure JWT Authentication
+
+			#region Authentication Configuration with JWT Bearer
+
+
 			builder.Services.AddAuthentication(options => {
 				options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
 				options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -79,14 +88,20 @@ namespace RestflowAPI
 					IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Secret))
 				};
 			});
+			#endregion
 
 
+			#region configure json requests to treat enums as strings not ints and to ignore case sensitivity in property names
 			builder.Services.AddControllers()
 				.AddJsonOptions(options => {
 					options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
 					options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
 				});
+			#endregion
+
 			builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+
+			#region Authorizaqtion Policies Configuration
 
 			builder.Services.AddAuthorization(options =>
 			{
@@ -102,13 +117,16 @@ namespace RestflowAPI
 				options.AddPolicy(RestflowAPI.Constants.Permissions.Policies.TenantAccess,
 					policy => policy.RequireRole(RestflowAPI.Constants.Permissions.Roles.Owner, RestflowAPI.Constants.Permissions.Roles.Employee));
 			});
-			// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+			#endregion
+
+
 			builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
             var app = builder.Build();
 
-			// Seed Roles
+
+			#region Seed Roles and Super Admin User
 			using (var scope = app.Services.CreateScope())
 			{
 				var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<RestflowAPI.Entities.ApplicationRole>>();
@@ -117,6 +135,7 @@ namespace RestflowAPI
 				await RestflowAPI.Data.IdentityDbInitializer.SeedRolesAsync(roleManager);
 				await RestflowAPI.Data.IdentityDbInitializer.SeedSuperAdminAsync(userManager, configuration);
 			}
+			#endregion
 			// Configure the HTTP request pipeline.
 			app.UseMiddleware<RestflowAPI.Middlewares.GlobalExceptionMiddleware>();
 

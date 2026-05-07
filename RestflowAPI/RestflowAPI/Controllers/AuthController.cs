@@ -22,23 +22,12 @@ namespace RestflowAPI.Controllers
 		public async Task<IActionResult> Register([FromBody] RegisterRequestDto request, CancellationToken cancellationToken)
 		{
 			var result = await _authService.RegisterAsync(request, cancellationToken);
-
-			if (!result.IsSuccess)
-			{
-				return BadRequest(result);
-			}
-
 			return Ok(result);
 		}
 		[HttpPost("verify-otp")]
 		public async Task<IActionResult> VerifyOtp([FromBody] VerifyOtpRequestDto request, CancellationToken cancellationToken)
 		{
 			var result = await _authService.VerifyOtpAsync(request, cancellationToken);
-
-			if (!result.IsSuccess)
-			{
-				return BadRequest(result);
-			}
 
 			return Ok(result);
 		}
@@ -47,23 +36,12 @@ namespace RestflowAPI.Controllers
 		{
 			var result = await _authService.ResendOtpAsync(request, cancellationToken);
 
-			if (!result.IsSuccess)
-			{
-				return BadRequest(result);
-			}
-
 			return Ok(result);
 		}
 		[HttpPost("login")]
 		public async Task<IActionResult> Login([FromBody] LoginRequestDto request, CancellationToken cancellationToken)
 		{
 			var result = await _authService.LoginAsync(request, cancellationToken);
-
-			if (!result.IsSuccess)
-			{
-				return BadRequest(result);
-			}
-
 			return Ok(result);
 		}
 
@@ -72,12 +50,6 @@ namespace RestflowAPI.Controllers
 		public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequestDto request, CancellationToken cancellationToken)
 		{
 			var result = await _authService.RefreshSessionAsync(request, cancellationToken);
-
-			if (!result.IsSuccess)
-			{
-				return BadRequest(result);
-			}
-
 			return Ok(result);
 		}
 
@@ -85,11 +57,6 @@ namespace RestflowAPI.Controllers
 		public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequestDto request, CancellationToken cancellationToken)
 		{
 			var result = await _authService.ForgotPasswordAsync(request, cancellationToken);
-
-			if (!result.IsSuccess)
-			{
-				return BadRequest(result);
-			}
 
 			return Ok(result);
 		}
@@ -99,11 +66,6 @@ namespace RestflowAPI.Controllers
 		{
 			var result = await _authService.ResetPasswordAsync(request, cancellationToken);
 
-			if (!result.IsSuccess)
-			{
-				return BadRequest(result);
-			}
-
 			return Ok(result);
 		}
 
@@ -112,11 +74,6 @@ namespace RestflowAPI.Controllers
 		public async Task<IActionResult> Logout([FromBody] LogoutRequestDto request, CancellationToken cancellationToken)
 		{
 			var result = await _authService.LogoutAsync(request, cancellationToken);
-
-			if (!result.IsSuccess)
-			{
-				return BadRequest(result);
-			}
 
 			return Ok(result);
 		}
