@@ -30,7 +30,9 @@ namespace RestflowAPI
 			builder.Configuration.GetSection("Jwt").Bind(jwtSettings);
 			builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
 
-			builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Email"));
+			builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+
+			builder.Services.Configure<SmsSettings>(builder.Configuration.GetSection("SmsSettings"));
 			#endregion
 
 			builder.Services.AddHttpContextAccessor();
@@ -46,6 +48,7 @@ namespace RestflowAPI
 			builder.Services.AddScoped<ITenantRepository, TenantRepository>();
 			builder.Services.AddScoped<ITenantService, TenantService>();
 			builder.Services.AddScoped<IEmailService, EmailService>();
+			builder.Services.AddScoped<ISmsService, SmsService>();
 			#endregion
 
 

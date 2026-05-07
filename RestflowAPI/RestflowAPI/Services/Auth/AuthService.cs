@@ -22,6 +22,7 @@ namespace RestflowAPI.Services.Auth
 		private readonly IJwtService _jwtService;
 		private readonly ITenantRepository _tenantRepository;
 		private readonly IEmailService _emailService;
+		private readonly ISmsService _smsService;
 		private readonly IValidator<RegisterRequestDto> _registerValidator;
 		private readonly IValidator<VerifyOtpRequestDto> _verifyOtpValidator;
 		private readonly IValidator<ResendOtpRequestDto> _resendOtpValidator;
@@ -43,7 +44,8 @@ namespace RestflowAPI.Services.Auth
 			, IValidator<RefreshTokenRequestDto> refreshTokenValidator, IValidator<ForgotPasswordRequestDto> forgotPasswordValidator
 			, IValidator<ResetPasswordRequestDto> resetPasswordValidator, IValidator<LogoutRequestDto> logoutRequestValidator
 			, IValidator<CreateUserByAdminDto> createUserByAdminValidator, ITenantRepository tenantRepository
-			, IValidator<ChangePasswordDto> changePasswordValidator, IEmailService emailService)
+			, IValidator<ChangePasswordDto> changePasswordValidator, IEmailService emailService
+			, ISmsService smsService)
 		{
 			_authRepository = authRepository;
 			_logger = logger;
@@ -63,6 +65,7 @@ namespace RestflowAPI.Services.Auth
 			_tenantRepository = tenantRepository;
 			_changePasswordValidator = changePasswordValidator;
 			_emailService = emailService;
+			_smsService = smsService;
 		}
 		public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request, CancellationToken cancellationToken)
 		{
@@ -138,6 +141,14 @@ namespace RestflowAPI.Services.Auth
 				if (user != null && !string.IsNullOrEmpty(user.Email))
 				{
 					await _emailService.SendEmailAsync(user.Email, "Restflow - Verification Code", $"Your verification code is: {code}");
+				}
+			}
+			else if (channel == ChannelType.Phone)
+			{
+				var user = await _authRepository.FindByIdAsync(userId, cancellationToken);
+				if (user != null && !string.IsNullOrEmpty(user.PhoneNumber))
+				{
+					await _smsService.SendSmsAsync(user.PhoneNumber, $"Restflow: Your verification code is {code}");
 				}
 			}
 		}
