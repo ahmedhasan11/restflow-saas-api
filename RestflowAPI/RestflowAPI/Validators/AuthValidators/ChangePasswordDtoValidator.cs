@@ -12,7 +12,8 @@ namespace RestflowAPI.Validators.AuthValidators
 
 			RuleFor(x => x.NewPassword)
 				.NotEmpty().WithMessage("New password is required.")
-				.MinimumLength(5).WithMessage("Password must be at least 5 characters.");
+				.MinimumLength(5).WithMessage("New password must be at least 5 characters.")
+				.NotEqual(x => x.CurrentPassword).WithMessage("New password cannot be the same as the current password.");
 
 			RuleFor(x => x.ConfirmNewPassword)
 				.Equal(x => x.NewPassword)

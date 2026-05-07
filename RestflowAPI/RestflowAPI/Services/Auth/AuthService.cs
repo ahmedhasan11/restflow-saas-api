@@ -21,6 +21,7 @@ namespace RestflowAPI.Services.Auth
 		private readonly IRefreshTokenService _refreshTokenService;
 		private readonly IJwtService _jwtService;
 		private readonly ITenantRepository _tenantRepository;
+		private readonly IEmailService _emailService;
 		private readonly IValidator<RegisterRequestDto> _registerValidator;
 		private readonly IValidator<VerifyOtpRequestDto> _verifyOtpValidator;
 		private readonly IValidator<ResendOtpRequestDto> _resendOtpValidator;
@@ -41,7 +42,8 @@ namespace RestflowAPI.Services.Auth
 			, IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository
 			, IValidator<RefreshTokenRequestDto> refreshTokenValidator, IValidator<ForgotPasswordRequestDto> forgotPasswordValidator
 			, IValidator<ResetPasswordRequestDto> resetPasswordValidator, IValidator<LogoutRequestDto> logoutRequestValidator
-			, IValidator<CreateUserByAdminDto> createUserByAdminValidator, ITenantRepository tenantRepository, IValidator<ChangePasswordDto> changePasswordValidator)
+			, IValidator<CreateUserByAdminDto> createUserByAdminValidator, ITenantRepository tenantRepository
+			, IValidator<ChangePasswordDto> changePasswordValidator, IEmailService emailService)
 		{
 			_authRepository = authRepository;
 			_logger = logger;
@@ -60,6 +62,7 @@ namespace RestflowAPI.Services.Auth
 			_createUserByAdminValidator = createUserByAdminValidator;
 			_tenantRepository = tenantRepository;
 			_changePasswordValidator = changePasswordValidator;
+			_emailService = emailService;
 		}
 		public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request, CancellationToken cancellationToken)
 		{
@@ -128,6 +131,15 @@ namespace RestflowAPI.Services.Auth
 				CreatedAt = DateTime.UtcNow
 			};
 			await _authRepository.SaveOtpAsync(otp, cancellationToken);
+			// SRS 3.2 - Send OTP via Email if channel is Email
+			if (channel == ChannelType.Email)
+			{
+				var user = await _authRepository.FindByIdAsync(userId, cancellationToken);
+				if (user != null && !string.IsNullOrEmpty(user.Email))
+				{
+					await _emailService.SendEmailAsync(user.Email, "Restflow - Verification Code", $"Your verification code is: {code}");
+				}
+			}
 		}
 		private string HashOtp(string code)
 		{
@@ -341,22 +353,17 @@ namespace RestflowAPI.Services.Auth
 			// 1️⃣ Validate DTO
 			var validation = await _changePasswordValidator.ValidateAsync(request, cancellationToken);
 			if (!validation.IsValid)
-				return AuthResponseDto.Failure(validation.Errors.Select(e => e.ErrorMessage));
+					throw new AppValidationException(validation.Errors.Select(e => e.ErrorMessage));
 
 			// 2️⃣ Load user
 			var user = await _authRepository.FindByIdAsync(userId, cancellationToken);
 			if (user == null || user.Status != UserStatus.Active)
-				return AuthResponseDto.Failure("User not found.");
-
-			// 3️⃣ Verify current password
-			var currentValid = await _authRepository.CheckPasswordAsync(user, request.CurrentPassword);
-			if (!currentValid)
-				return AuthResponseDto.Failure("Current password is incorrect.");
+				throw new NotFoundException("User not found or inactive.");
 
 			// 4️⃣ Change password (Identity handles hashing & persistence)
 			var result = await _authRepository.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
 			if (!result.Succeeded)
-				return AuthResponseDto.Failure(result.Errors.Select(e => e.Description));
+				throw new UnauthorizedException("Invalid current password or password policy violation.");
 
 			// 5️⃣ Optional: revoke all refresh tokens so the user must re‑login
 			await _refreshTokenRepository.RevokeAllUserRefreshTokensAsync(user.Id, cancellationToken);
