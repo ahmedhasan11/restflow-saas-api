@@ -20,6 +20,30 @@ namespace RestflowAPI.Services.Tenants
 			_unitOfWork = unitOfWork;
 			_createTenantValidator = createTenantValidator;	
 		}
+
+		public async Task<TenantResponseDto> ChangeTenantStatusAsync(Guid tenantId, ChangeTenantStatusDto request, CancellationToken cancellationToken)
+		{
+			var tenant = await _tenantRepository.GetByIdAsync(tenantId, cancellationToken);
+			if (tenant == null)
+			{
+				throw new Exceptions.NotFoundException("Tenant not found.");
+			}
+
+			tenant.Status = request.Status;
+			tenant.UpdatedAt = DateTime.UtcNow;
+
+			await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+			return new TenantResponseDto
+			{
+				Id = tenant.Id,
+				RestaurantName = tenant.RestaurantName,
+				TenantCode = tenant.TenantCode,
+				Status = tenant.Status,
+				CreatedAt = tenant.CreatedAt
+			};
+		}
+
 		public async Task<TenantResponseDto> CreateTenantAsync(CreateTenantRequestDto request, CancellationToken cancellationToken)
 		{
 			var result = await _createTenantValidator.ValidateAsync(request, cancellationToken);

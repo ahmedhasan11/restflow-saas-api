@@ -18,6 +18,18 @@ namespace RestflowAPI.Repository.Auth
 			return await _db.Set<RefreshToken>().Include(r=>r.User).ThenInclude(u=>u.Tenant).FirstOrDefaultAsync(r => r.TokenHash == tokenHash, cancellationToken);
 		}
 
+		public async Task RevokeAllUserRefreshTokensAsync(Guid userId, CancellationToken cancellationToken)
+		{
+			var tokens = await _db.Set<RefreshToken>()
+				.Where(r => r.UserId == userId && !r.IsRevoked)
+				.ToListAsync(cancellationToken);
+
+			foreach (var token in tokens)
+			{
+				token.IsRevoked = true;
+			}
+		}
+
 		public async Task SaveRefreshTokenAsync(RefreshToken refreshToken, CancellationToken cancellationToken)
 		{
 			await _db.Set<RefreshToken>().AddAsync(refreshToken, cancellationToken);

@@ -45,5 +45,12 @@ namespace RestflowAPI.Controllers
 			var result = await _authService.CreateUserByAdminAsync(request, cancellationToken);
 			return Ok(result);
 		}
+
+		[HttpPatch("tenants/{id}/status")]
+		public async Task<IActionResult> ChangeTenantStatus(Guid id, [FromBody] ChangeTenantStatusDto request, CancellationToken cancellationToken)
+		{
+			var result = await _tenantService.ChangeTenantStatusAsync(id, request, cancellationToken);
+			return Ok(result);
+		}
 	}
 }
