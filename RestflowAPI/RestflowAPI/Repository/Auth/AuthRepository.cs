@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using RestflowAPI.Data;
 using RestflowAPI.Entities;
@@ -40,12 +40,16 @@ namespace RestflowAPI.Repository.Auth
 
 		public async Task<ApplicationUser?> FindByEmailAsync(string email, CancellationToken cancellationToken)
 		{
-			return await _userManager.Users.FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
+			return await _userManager.Users
+				.IgnoreQueryFilters()
+				.FirstOrDefaultAsync(u => u.DeletedAt == null && (u.Email == email || u.NormalizedEmail == email.ToUpper()), cancellationToken);
 		}
 
 		public async Task<ApplicationUser?> FindByPhoneAsync(string phone, CancellationToken cancellationToken)
 		{
-			return await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == phone, cancellationToken);
+			return await _userManager.Users
+				.IgnoreQueryFilters()
+				.FirstOrDefaultAsync(u => u.DeletedAt == null && u.PhoneNumber == phone, cancellationToken);
 		}
 
 		public async Task<OtpVerification?> GetLatestOtpAsync(Guid userId, ChannelType channel, CancellationToken cancellationToken)
@@ -82,7 +86,8 @@ namespace RestflowAPI.Repository.Auth
 		{
 			return await _userManager.Users
 				.Include(u => u.Tenant)
-				.FirstOrDefaultAsync(u => (u.Email == identifier || u.PhoneNumber == identifier), cancellationToken);
+				.IgnoreQueryFilters()
+				.FirstOrDefaultAsync(u => u.DeletedAt == null && (u.Email == identifier || u.NormalizedEmail == identifier.ToUpper() || u.PhoneNumber == identifier), cancellationToken);
 		}
 
 		public async Task<IdentityResult> ResetPasswordAsync(ApplicationUser user, string newPassword)
@@ -107,7 +112,8 @@ namespace RestflowAPI.Repository.Auth
 		{
 			return await _userManager.Users
 				.Include(u => u.Tenant)
-				.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+				.IgnoreQueryFilters()
+				.FirstOrDefaultAsync(u => u.DeletedAt == null && u.Id == userId, cancellationToken);
 		}
 
 		public async Task<IdentityResult> IncrementAccessFailedCountAsync(ApplicationUser user)

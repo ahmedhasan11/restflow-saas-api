@@ -45,7 +45,6 @@ namespace RestflowAPI.Controllers
 			return Ok(result);
 		}
 
-		[Authorize]
 		[HttpPost("refresh-token")]
 		public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequestDto request, CancellationToken cancellationToken)
 		{

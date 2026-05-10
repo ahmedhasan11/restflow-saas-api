@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.Data;
 using RestflowAPI.Data.UnitOfWork;
@@ -137,18 +137,32 @@ namespace RestflowAPI.Services.Auth
 			// SRS 3.2 - Send OTP via Email if channel is Email
 			if (channel == ChannelType.Email)
 			{
-				var user = await _authRepository.FindByIdAsync(userId, cancellationToken);
-				if (user != null && !string.IsNullOrEmpty(user.Email))
+				try
 				{
-					await _emailService.SendEmailAsync(user.Email, "Restflow - Verification Code", $"Your verification code is: {code}");
+					var user = await _authRepository.FindByIdAsync(userId, cancellationToken);
+					if (user != null && !string.IsNullOrEmpty(user.Email))
+					{
+						await _emailService.SendEmailAsync(user.Email, "Restflow - Verification Code", $"Your verification code is: {code}");
+					}
+				}
+				catch (Exception ex)
+				{
+					_logger.LogError(ex, "Failed to send verification email to user {UserId}", userId);
 				}
 			}
 			else if (channel == ChannelType.Phone)
 			{
-				var user = await _authRepository.FindByIdAsync(userId, cancellationToken);
-				if (user != null && !string.IsNullOrEmpty(user.PhoneNumber))
+				try
 				{
-					await _smsService.SendSmsAsync(user.PhoneNumber, $"Restflow: Your verification code is {code}");
+					var user = await _authRepository.FindByIdAsync(userId, cancellationToken);
+					if (user != null && !string.IsNullOrEmpty(user.PhoneNumber))
+					{
+						await _smsService.SendSmsAsync(user.PhoneNumber, $"Restflow: Your verification code is {code}");
+					}
+				}
+				catch (Exception ex)
+				{
+					_logger.LogError(ex, "Failed to send verification SMS to user {UserId}", userId);
 				}
 			}
 		}
@@ -536,6 +550,5 @@ namespace RestflowAPI.Services.Auth
 			await _unitOfWork.SaveChangesAsync(cancellationToken);
 			return AuthResponseDto.Success("User created successfully by admin.");
 		}
-
 	}
 }

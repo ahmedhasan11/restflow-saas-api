@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Options;
 using RestflowAPI.ServiceInterfaces.Auth;
 using RestflowAPI.Settings;
 using Twilio;
@@ -18,8 +18,23 @@ namespace RestflowAPI.Services.Auth
 
 		public async Task SendSmsAsync(string toPhone, string message)
 		{
+			if (string.IsNullOrEmpty(_smsSettings.AccountSid) ||string.IsNullOrEmpty(_smsSettings.AuthToken) ||	string.IsNullOrEmpty(_smsSettings.FromNumber))
+			{
+				throw new Exception("Twilio SMS settings are incomplete. Please ensure SmsSettings:AccountSid, AuthToken, and FromNumber are configured in your secrets.json or appsettings.json.");
+			}
+
 			try
 			{
+				// Normalize phone number to E.164 (specifically for Egypt as per validators)
+				if (toPhone.StartsWith("0"))
+				{
+					toPhone = "+20" + toPhone.Substring(1);
+				}
+				else if (!toPhone.StartsWith("+"))
+				{
+					toPhone = "+20" + toPhone;
+				}
+
 				TwilioClient.Init(_smsSettings.AccountSid, _smsSettings.AuthToken);
 
 				var messageOptions = new CreateMessageOptions(new PhoneNumber(toPhone))
@@ -32,8 +47,8 @@ namespace RestflowAPI.Services.Auth
 			}
 			catch (Exception ex)
 			{
-				// Log the exception if needed
-				throw new Exception("Failed to send SMS via Twilio. Please check your credentials.", ex);
+				// Throw a meaningful exception but keep the original for debugging
+				throw new Exception($"Failed to send SMS to {toPhone} via Twilio. Error: {ex.Message}", ex);
 			}
 		}
 	}
