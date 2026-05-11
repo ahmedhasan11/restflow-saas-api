@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using RestflowAPI.Data;
 using RestflowAPI.Entities;
-using RestflowAPI.RepositoryInterfaces.Tenants;
+using RestflowAPI.Repository.Interfaces.Tenants;
 
 namespace RestflowAPI.Repository.Tenants
 {

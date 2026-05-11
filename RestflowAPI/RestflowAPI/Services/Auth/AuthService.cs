@@ -5,12 +5,12 @@ using RestflowAPI.Data.UnitOfWork;
 using RestflowAPI.DTOs.Auth;
 using RestflowAPI.Entities;
 using RestflowAPI.Enums;
-using RestflowAPI.RepositoryInterfaces.Auth;
 using RestflowAPI.Exceptions;
-using RestflowAPI.RepositoryInterfaces.Tenants;
 using RestflowAPI.ServiceInterfaces.Auth;
 using System.Security.Cryptography;
 using System.Text;
+using RestflowAPI.Repository.Interfaces.Auth;
+using RestflowAPI.Repository.Interfaces.Tenants;
 
 namespace RestflowAPI.Services.Auth
 {

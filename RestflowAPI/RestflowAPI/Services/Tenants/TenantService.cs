@@ -3,7 +3,7 @@ using RestflowAPI.Data.UnitOfWork;
 using RestflowAPI.DTOs.Tenants;
 using RestflowAPI.Entities;
 using RestflowAPI.Exceptions;
-using RestflowAPI.RepositoryInterfaces.Tenants;
+using RestflowAPI.Repository.Interfaces.Tenants;
 using RestflowAPI.ServiceInterfaces.Tenants;
 
 namespace RestflowAPI.Services.Tenants

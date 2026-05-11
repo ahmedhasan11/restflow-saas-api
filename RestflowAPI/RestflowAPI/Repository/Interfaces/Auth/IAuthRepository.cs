@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RestflowAPI.Entities;
 using RestflowAPI.Enums;
 
-namespace RestflowAPI.RepositoryInterfaces.Auth
+namespace RestflowAPI.Repository.Interfaces.Auth
 {
 	public interface IAuthRepository
 	{

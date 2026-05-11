@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using RestflowAPI.Data;
 using RestflowAPI.Entities;
-using RestflowAPI.RepositoryInterfaces.Auth;
+using RestflowAPI.Repository.Interfaces.Auth;
 
 namespace RestflowAPI.Repository.Auth
 {

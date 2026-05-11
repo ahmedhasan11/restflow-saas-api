@@ -1,6 +1,6 @@
 ﻿using RestflowAPI.Entities;
 
-namespace RestflowAPI.RepositoryInterfaces.Auth
+namespace RestflowAPI.Repository.Interfaces.Auth
 {
 	public interface IRefreshTokenRepository
 	{

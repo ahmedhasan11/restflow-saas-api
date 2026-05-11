@@ -1,6 +1,6 @@
 ﻿using RestflowAPI.Entities;
 
-namespace RestflowAPI.RepositoryInterfaces.Tenants
+namespace RestflowAPI.Repository.Interfaces.Tenants
 {
 	public interface ITenantRepository
 	{

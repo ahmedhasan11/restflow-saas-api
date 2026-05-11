@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using RestflowAPI.Data;
 using RestflowAPI.Entities;
 using RestflowAPI.Enums;
-using RestflowAPI.RepositoryInterfaces.Auth;
+using RestflowAPI.Repository.Interfaces.Auth;
 using System.Threading;
 
 namespace RestflowAPI.Repository.Auth
@@ -84,10 +84,25 @@ namespace RestflowAPI.Repository.Auth
 		}
 		public async Task<ApplicationUser?> FindByIdentifierAsync(string identifier, CancellationToken cancellationToken)
 		{
+			// Normalize identifier: if it's a phone number, try both formats (with 0 and with +20)
+			string? phoneAlternative = null;
+			if (!identifier.Contains("@"))
+			{
+				if (identifier.StartsWith("0"))
+					phoneAlternative = "+20" + identifier.Substring(1);
+				else if (identifier.StartsWith("+20"))
+					phoneAlternative = "0" + identifier.Substring(3);
+			}
+
 			return await _userManager.Users
 				.Include(u => u.Tenant)
 				.IgnoreQueryFilters()
-				.FirstOrDefaultAsync(u => u.DeletedAt == null && (u.Email == identifier || u.NormalizedEmail == identifier.ToUpper() || u.PhoneNumber == identifier), cancellationToken);
+				.FirstOrDefaultAsync(u => u.DeletedAt == null && (
+					u.Email == identifier || 
+					u.NormalizedEmail == identifier.ToUpper() || 
+					u.PhoneNumber == identifier ||
+					(phoneAlternative != null && u.PhoneNumber == phoneAlternative)
+				), cancellationToken);
 		}
 
 		public async Task<IdentityResult> ResetPasswordAsync(ApplicationUser user, string newPassword)
