@@ -20,8 +20,6 @@ using RestflowAPI.Settings;
 using System.Text;
 using RestflowAPI.swagger;
 using System.Runtime.InteropServices;
-using FluentValidation;
-using FluentValidation.AspNetCore;
 
 namespace RestflowAPI
 {
