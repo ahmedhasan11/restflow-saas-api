@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using RestflowAPI.Constants;
 using RestflowAPI.DTOs.Product;
 
+[Authorize(Policy =Permissions.Policies.TenantAccess)]
 [ApiController]
 [Route("menu/products")]
 public class ProductsController : ControllerBase

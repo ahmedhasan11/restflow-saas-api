@@ -1,11 +1,14 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using RestflowAPI.Constants;
 using RestflowAPI.DTOs.Product;
 using RestflowAPI.ServiceInterfaces.ProductIngredient;
 
 namespace RestflowAPI.Controllers
 {
-    [ApiController]
+	[Authorize(Policy = Permissions.Policies.TenantAccess)]
+	[ApiController]
     [Route("api/product-ingredients")]
     public class ProductIngredientsController : ControllerBase
     {
