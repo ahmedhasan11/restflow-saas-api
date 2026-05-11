@@ -11,11 +11,17 @@ using RestflowAPI.Repository.Interfaces.Auth;
 using RestflowAPI.Repository.Interfaces.Tenants;
 using RestflowAPI.Repository.Tenants;
 using RestflowAPI.ServiceInterfaces.Auth;
+using RestflowAPI.ServiceInterfaces.ImenuCategory;
+using RestflowAPI.ServiceInterfaces.ProductIngredient;
 using RestflowAPI.ServiceInterfaces.Tenants;
 using RestflowAPI.Services.Auth;
 using RestflowAPI.Services.Tenants;
 using RestflowAPI.Settings;
 using System.Text;
+using RestflowAPI.swagger;
+using System.Runtime.InteropServices;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 
 namespace RestflowAPI
 {
@@ -42,6 +48,7 @@ namespace RestflowAPI
 			builder.Services.AddScoped<IAuthService, AuthService>();
 			builder.Services.AddScoped<ICurrentTenantService,CurrentTenantService>();
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
 			builder.Services.AddScoped<IJwtService, JwtService>();
 			builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 			builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
@@ -49,10 +56,24 @@ namespace RestflowAPI
 			builder.Services.AddScoped<ITenantService, TenantService>();
 			builder.Services.AddScoped<IEmailService, EmailService>();
 			builder.Services.AddScoped<ISmsService, SmsService>();
+
+			builder.Services.AddScoped<IProductService, ProductService>();
+			builder.Services.AddScoped<IProductIngredientService, ProductIngredientService>();
+			builder.Services.AddScoped<IMenuCategoryService, MenuCategoryService>();
+			builder.Services.AddScoped<IProductIngredientRepository, ProductIngredientRepository>();
+			builder.Services.AddScoped<IProductRepository, ProductRepository>();
+			builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+			builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
+
 			#endregion
 
-
+			#region Fluent Validation Configuration
+			//Add Fluent Validations
+			//builder.Services.AddFluentValidationAutoValidation();
+			builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+			#endregion
 			#region DbContext Configuration with Identity
+
 
 			builder.Services.AddDbContext<RestflowAPI.Data.ApplicationDbContext>(options =>
 				options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -63,15 +84,16 @@ namespace RestflowAPI
 				options.Password.RequireNonAlphanumeric = false;//symbols
 				options.Password.RequireLowercase = true;
 				options.Password.RequireDigit = false;
-				//options.Password.RequiredUniqueChars = 3;
 
-				// Lockout Settings (US-20)
+
+
 				options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
 				options.Lockout.MaxFailedAccessAttempts = 5;
 				options.Lockout.AllowedForNewUsers = true;
 			})
 			.AddEntityFrameworkStores<RestflowAPI.Data.ApplicationDbContext>()
 			.AddDefaultTokenProviders();
+
 			#endregion
 
 
@@ -105,7 +127,7 @@ namespace RestflowAPI
 				});
 			#endregion
 
-			builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+
 
 			#region Authorizaqtion Policies Configuration
 
@@ -127,9 +149,12 @@ namespace RestflowAPI
 
 
 			builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+			builder.Services.AddSwaggerGen(options =>
+			{
+				options.OperationFilter<TenantHeaderOperationFilter>();
+			});
 
-            var app = builder.Build();
+			var app = builder.Build();
 
 
 			#region Seed Roles and Super Admin User
