@@ -7,5 +7,7 @@ namespace RestflowAPI.Repository.Interfaces.Customers
 		Task<List<Customer>> GetAllAsync(CancellationToken cancellationToken);
 		Task<bool> ExistsByPhoneNumberAsync(string phoneNumber, Guid? excludeId, CancellationToken cancellationToken);
 		Task AddAsync(Customer customer);
+
+		Task<Customer?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
 	}
 }

@@ -28,5 +28,10 @@ namespace RestflowAPI.Repository.Customers
 		{
 			return await _db.Customers.OrderByDescending(c=>c.CreatedAt).ToListAsync(cancellationToken);
 		}
+
+		public async Task<Customer?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+		{
+			return await _db.Customers.FirstOrDefaultAsync(c=>c.Id==id, cancellationToken);
+		}
 	}
 }

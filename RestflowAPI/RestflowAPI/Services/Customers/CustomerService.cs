@@ -66,5 +66,15 @@ namespace RestflowAPI.Services.Customers
 				Status = customer.Status
 			};
 		}
+
+		public async Task<CustomerDto> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+		{
+			var customer = await _customerRepository.GetByIdAsync(id, cancellationToken);
+			if (customer==null)
+			{
+				throw new NotFoundException($"Customer with ID {id} not found.");
+			}
+			return MapToCustomerDto(customer);
+		}
 	}
 }

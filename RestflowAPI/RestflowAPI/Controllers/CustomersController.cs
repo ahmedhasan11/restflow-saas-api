@@ -31,5 +31,13 @@ namespace RestflowAPI.Controllers
 			var result = await _customerService.CreateAsync(dto, cancellationToken);
 			return Ok(result);
 		}
+
+
+		[HttpGet("{id}")]
+		public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
+		{
+			var customer = await _customerService.GetByIdAsync(id, cancellationToken);
+			return Ok(customer);
+		}
 	}
 }
