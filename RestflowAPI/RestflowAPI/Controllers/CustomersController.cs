@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using RestflowAPI.Constants;
+using RestflowAPI.DTOs.Customers;
 using RestflowAPI.ServiceInterfaces.Customers;
 
 namespace RestflowAPI.Controllers
@@ -22,6 +23,13 @@ namespace RestflowAPI.Controllers
 		{
 			var customers = await _customerService.GetAllAsync(cancellationToken);
 			return Ok(customers);
+		}
+
+		[HttpPost]
+		public async Task<IActionResult> Create(CreateCustomerDto dto, CancellationToken cancellationToken)
+		{
+			var result = await _customerService.CreateAsync(dto, cancellationToken);
+			return Ok(result);
 		}
 	}
 }
