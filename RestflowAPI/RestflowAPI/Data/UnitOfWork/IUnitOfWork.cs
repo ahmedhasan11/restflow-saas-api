@@ -1,7 +1,9 @@
-﻿namespace RestflowAPI.Data.UnitOfWork
+﻿
+
+namespace RestflowAPI.Data.UnitOfWork
 {
 	public interface IUnitOfWork
 	{
-		Task<int> SaveChangesAsync(CancellationToken cancellationToken);
+        Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 	}
 }
