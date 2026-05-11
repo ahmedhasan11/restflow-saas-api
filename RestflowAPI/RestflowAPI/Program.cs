@@ -2,8 +2,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using RestflowAPI.Data.UnitOfWork;
-using RestflowAPI.Repositories.Interfaces;
-using RestflowAPI.Repositories;
 using RestflowAPI.ServiceInterfaces.ImenuCategory;
 using RestflowAPI.ServiceInterfaces.ProductIngredient;
 using RestflowAPI.ServiceInterfaces.Tenants;
@@ -34,6 +32,7 @@ namespace RestflowAPI
             builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
 
 
+			//Add Fluent Validations
             builder.Services.AddFluentValidationAutoValidation();
 
             builder.Services.AddValidatorsFromAssemblyContaining<AddProductIngredientDtoValidator>();
