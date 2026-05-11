@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using Org.BouncyCastle.Asn1.X509;
 using RestflowAPI.Data.UnitOfWork;
 using RestflowAPI.DTOs.Customers;
 using RestflowAPI.Entities;
@@ -14,12 +15,16 @@ namespace RestflowAPI.Services.Customers
 	{
 		private readonly ICustomerRepository _customerRepository;
 		private readonly IValidator<CreateCustomerDto> _createCustomerValidator;
+		private readonly IValidator<UpdateCustomerDto> _updateCustomerValidator;
+		private readonly IValidator<UpdateCustomerStatusDto> _updateCustomerStatusValidator;
 		private readonly IUnitOfWork _unitOfWork;
 		public CustomerService(ICustomerRepository customerRepository , IValidator<CreateCustomerDto> createCustomerValidator
-			, IUnitOfWork unitOfWork)
+			, IValidator<UpdateCustomerDto> updateCustomerValidator, IValidator<UpdateCustomerStatusDto> updateCustomerStatusValidator, IUnitOfWork unitOfWork)
 		{
 			_customerRepository = customerRepository;
 			_createCustomerValidator = createCustomerValidator;
+			_updateCustomerValidator = updateCustomerValidator;
+			_updateCustomerStatusValidator = updateCustomerStatusValidator;
 			_unitOfWork = unitOfWork;
 		}
 
@@ -75,6 +80,52 @@ namespace RestflowAPI.Services.Customers
 				throw new NotFoundException($"Customer with ID {id} not found.");
 			}
 			return MapToCustomerDto(customer);
+		}
+
+		public async Task<CustomerResponseDto> UpdateAsync(Guid id, UpdateCustomerDto dto, CancellationToken cancellationToken)
+		{
+			var result = await _updateCustomerValidator.ValidateAsync(dto, cancellationToken);
+			if (!result.IsValid)
+			{
+				throw new AppValidationException(result.Errors.Select(e => e.ErrorMessage));
+			}
+
+			var customer = await _customerRepository.GetByIdAsync(id, cancellationToken);
+			if (customer == null)
+			{
+				throw new NotFoundException($"Customer with ID {id} not found.");
+			}
+
+			if (dto.FullName != null)
+				customer.FullName = dto.FullName;
+
+			if (dto.PhoneNumber != null)
+				customer.PhoneNumber = dto.PhoneNumber;
+
+			await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+			return CustomerResponseDto.Success(MapToCustomerDto(customer), "Customer updated successfully.");
+		}
+
+		public async Task<CustomerResponseDto> UpdateStatusAsync(Guid id, UpdateCustomerStatusDto dto, CancellationToken cancellationToken)
+		{
+			var validationResult = await _updateCustomerStatusValidator.ValidateAsync(dto, cancellationToken);
+			if (!validationResult.IsValid)
+			{
+				throw new AppValidationException(validationResult.Errors.Select(e => e.ErrorMessage));
+			}
+			// 1. Existence Check (and Tenant isolation via filter)
+			var customer = await _customerRepository.GetByIdAsync(id, cancellationToken);
+			if (customer == null)
+				throw new NotFoundException($"Customer with ID {id} not found.");
+
+			// 2. Update status
+			customer.Status = dto.Status;
+
+			await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+			string message = dto.Status == CustomerStatus.Active ? "Customer activated." : "Customer deactivated.";
+			return CustomerResponseDto.Success(MapToCustomerDto(customer), message);
 		}
 	}
 }

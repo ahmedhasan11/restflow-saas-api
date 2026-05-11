@@ -39,5 +39,19 @@ namespace RestflowAPI.Controllers
 			var customer = await _customerService.GetByIdAsync(id, cancellationToken);
 			return Ok(customer);
 		}
+
+		[HttpPatch("{id}")]
+		public async Task<IActionResult> Update(Guid id, UpdateCustomerDto dto, CancellationToken cancellationToken)
+		{
+			var result = await _customerService.UpdateAsync(id, dto, cancellationToken);
+			return Ok(result);
+		}
+
+		[HttpPut("{id}/status")]
+		public async Task<IActionResult> UpdateStatus(Guid id, UpdateCustomerStatusDto dto, CancellationToken cancellationToken)
+		{
+			var result = await _customerService.UpdateStatusAsync(id, dto, cancellationToken);
+			return Ok(result);
+		}
 	}
 }
