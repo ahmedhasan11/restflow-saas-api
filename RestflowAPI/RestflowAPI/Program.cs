@@ -20,6 +20,10 @@ using RestflowAPI.Settings;
 using System.Text;
 using RestflowAPI.swagger;
 using System.Runtime.InteropServices;
+using RestflowAPI.Repository.Interfaces.Customers;
+using RestflowAPI.Repository.Customers;
+using RestflowAPI.ServiceInterfaces.Customers;
+using RestflowAPI.Services.Customers;
 
 namespace RestflowAPI
 {
@@ -62,6 +66,9 @@ namespace RestflowAPI
 			builder.Services.AddScoped<IProductRepository, ProductRepository>();
 			builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 			builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
+
+			builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
+			builder.Services.AddScoped<ICustomerService, CustomerService>();
 
 			#endregion
 

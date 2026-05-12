@@ -1,4 +1,5 @@
 using System;
+using RestflowAPI.Enums;
 using RestflowAPI.ServiceInterfaces.Tenants;
 
 namespace RestflowAPI.Entities;
@@ -10,6 +11,8 @@ public class Customer : BaseEntity, IMustHaveTenant
     public string FullName { get; set; } = string.Empty;
     public string PhoneNumber { get; set; } = string.Empty;
 
-    // Navigation Properties
-    public Tenant Tenant { get; set; } = null!;
+	public CustomerStatus Status { get; set; } = CustomerStatus.Active;
+
+	// Navigation Properties
+	public Tenant Tenant { get; set; } = null!;
 }

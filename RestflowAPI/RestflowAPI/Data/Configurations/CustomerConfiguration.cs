@@ -13,8 +13,8 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
         
         builder.Property(c => c.FullName).IsRequired().HasMaxLength(150);
         builder.Property(c => c.PhoneNumber).IsRequired().HasMaxLength(50);
-        
-        builder.HasIndex(c => new { c.TenantId, c.PhoneNumber }).IsUnique();
+		builder.Property(c => c.Status).HasConversion<string>().IsRequired().HasMaxLength(20);
+		builder.HasIndex(c => new { c.TenantId, c.PhoneNumber }).IsUnique();
                
         builder.HasOne(c => c.Tenant)
             .WithMany(t => t.Customers)
