@@ -30,19 +30,21 @@ namespace RestflowAPI.Repository.Customers
 			{
 				query=query.Where(c => c.FullName.Contains(search) || c.PhoneNumber.Contains(search));
 			}
-			if (customerStatus.HasValue)
+			if (!customerStatus.HasValue)
 			{
-				query=query.Where(c => c.Status == customerStatus.Value);
+				customerStatus = CustomerStatus.Active;
 			}
+			query = query.Where(c => c.Status == customerStatus.Value);
+
 			return await query.OrderByDescending(c => c.CreatedAt).Select(c => new CustomerDto()
-			{
-				Id = c.Id,
-				FullName = c.FullName,
-				PhoneNumber = c.PhoneNumber,
-				Status = c.Status,
-				CreatedAt = c.CreatedAt,
-				UpdatedAt = c.UpdatedAt
-			}).ToListAsync(cancellationToken);
+				{
+					Id = c.Id,
+					FullName = c.FullName,
+					PhoneNumber = c.PhoneNumber,
+					Status = c.Status,
+					CreatedAt = c.CreatedAt,
+					UpdatedAt = c.UpdatedAt
+				}).ToListAsync(cancellationToken);
 
 		}
 		public async Task<Customer?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
