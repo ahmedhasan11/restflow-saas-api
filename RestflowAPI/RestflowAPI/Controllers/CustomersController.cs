@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using RestflowAPI.Constants;
 using RestflowAPI.DTOs.Customers;
+using RestflowAPI.Enums;
 using RestflowAPI.ServiceInterfaces.Customers;
 
 namespace RestflowAPI.Controllers
@@ -17,36 +18,30 @@ namespace RestflowAPI.Controllers
 		{
 			_customerService = customerService;
 		}
-
 		[HttpGet]
-		public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
+		public async Task<IActionResult> GetAll(string? search, CustomerStatus? customerStatus, CancellationToken cancellationToken)
 		{
-			var customers = await _customerService.GetAllAsync(cancellationToken);
+			var customers = await _customerService.GetAllAsync(search, customerStatus, cancellationToken);
 			return Ok(customers);
 		}
-
 		[HttpPost]
 		public async Task<IActionResult> Create(CreateCustomerDto dto, CancellationToken cancellationToken)
 		{
 			var result = await _customerService.CreateAsync(dto, cancellationToken);
 			return Ok(result);
 		}
-
-
 		[HttpGet("{id}")]
 		public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
 		{
 			var customer = await _customerService.GetByIdAsync(id, cancellationToken);
 			return Ok(customer);
 		}
-
 		[HttpPatch("{id}")]
 		public async Task<IActionResult> Update(Guid id, UpdateCustomerDto dto, CancellationToken cancellationToken)
 		{
 			var result = await _customerService.UpdateAsync(id, dto, cancellationToken);
 			return Ok(result);
 		}
-
 		[HttpPut("{id}/status")]
 		public async Task<IActionResult> UpdateStatus(Guid id, UpdateCustomerStatusDto dto, CancellationToken cancellationToken)
 		{

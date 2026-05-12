@@ -27,7 +27,6 @@ namespace RestflowAPI.Services.Customers
 			_updateCustomerStatusValidator = updateCustomerStatusValidator;
 			_unitOfWork = unitOfWork;
 		}
-
 		public async Task<CustomerResponseDto> CreateAsync(CreateCustomerDto dto, CancellationToken cancellationToken)
 		{
 			var result = await _createCustomerValidator.ValidateAsync(dto, cancellationToken);
@@ -54,13 +53,10 @@ namespace RestflowAPI.Services.Customers
 			return CustomerResponseDto.Success(MapToCustomerDto(customer), "Customer created successfully.");
 
 		}
-
-		public async Task<List<CustomerDto>> GetAllAsync(CancellationToken cancellationToken)
+		public async Task<List<CustomerDto>> GetAllAsync(string? search, CustomerStatus? customerStatus, CancellationToken cancellationToken)
 		{
-			var customers = await _customerRepository.GetAllAsync(cancellationToken);
-			return customers.Select(c=> MapToCustomerDto(c)).ToList();
+			return await _customerRepository.GetAllAsync(search, customerStatus, cancellationToken);
 		}
-
 		private static CustomerDto MapToCustomerDto(Customer customer)
 		{
 			return new CustomerDto
@@ -68,10 +64,11 @@ namespace RestflowAPI.Services.Customers
 				Id = customer.Id,
 				FullName = customer.FullName,
 				PhoneNumber = customer.PhoneNumber,
-				Status = customer.Status
+				Status = customer.Status,
+				CreatedAt = customer.CreatedAt,
+				UpdatedAt = customer.UpdatedAt
 			};
 		}
-
 		public async Task<CustomerDto> GetByIdAsync(Guid id, CancellationToken cancellationToken)
 		{
 			var customer = await _customerRepository.GetByIdAsync(id, cancellationToken);
@@ -81,7 +78,6 @@ namespace RestflowAPI.Services.Customers
 			}
 			return MapToCustomerDto(customer);
 		}
-
 		public async Task<CustomerResponseDto> UpdateAsync(Guid id, UpdateCustomerDto dto, CancellationToken cancellationToken)
 		{
 			var result = await _updateCustomerValidator.ValidateAsync(dto, cancellationToken);
@@ -106,7 +102,6 @@ namespace RestflowAPI.Services.Customers
 
 			return CustomerResponseDto.Success(MapToCustomerDto(customer), "Customer updated successfully.");
 		}
-
 		public async Task<CustomerResponseDto> UpdateStatusAsync(Guid id, UpdateCustomerStatusDto dto, CancellationToken cancellationToken)
 		{
 			var validationResult = await _updateCustomerStatusValidator.ValidateAsync(dto, cancellationToken);
