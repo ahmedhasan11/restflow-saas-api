@@ -362,15 +362,17 @@ namespace RestflowAPI.Services.Settings
 			var dto = new PlatformSettingsDto();
 			foreach (var setting in settings)
 			{
+				// Mask sensitive values for display 
+				var displayValue = setting.IsSecret ? "**********" : setting.SettingValue;
 				switch (setting.SettingKey)
 				{
-					case "SystemName": dto.SystemName = setting.SettingValue; break;
-					case "SystemLogoUrl": dto.SystemLogoUrl = setting.SettingValue; break;
-					case "DefaultLanguage": dto.DefaultLanguage = setting.SettingValue; break;
-					case "SupportEmail": dto.SupportEmail = setting.SettingValue; break;
-					case "CompanyName": dto.CompanyName = setting.SettingValue; break;
+					case "SystemName": dto.SystemName = displayValue; break;
+					case "SystemLogoUrl": dto.SystemLogoUrl = displayValue; break;
+					case "DefaultLanguage": dto.DefaultLanguage = displayValue; break;
+					case "SupportEmail": dto.SupportEmail = displayValue; break;
+					case "CompanyName": dto.CompanyName = displayValue; break;
 					default:
-						dto.ApiConfigurations[setting.SettingKey] = setting.SettingValue;
+						dto.ApiConfigurations[setting.SettingKey] = displayValue;
 						break;
 				}
 			}
