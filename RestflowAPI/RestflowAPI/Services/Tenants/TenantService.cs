@@ -40,6 +40,10 @@ namespace RestflowAPI.Services.Tenants
 				RestaurantName = tenant.RestaurantName,
 				TenantCode = tenant.TenantCode,
 				Status = tenant.Status,
+				Country = tenant.Country,
+				DefaultLanguage = tenant.DefaultLanguage,
+				Timezone = tenant.Timezone,
+				Currency = tenant.Currency,
 				CreatedAt = tenant.CreatedAt
 			};
 		}
@@ -63,6 +67,10 @@ namespace RestflowAPI.Services.Tenants
 				TenantCode = request.TenantCode,
 				RestaurantName = request.RestaurantName,
 				Status = request.Status,
+				Country = request.Country,
+				DefaultLanguage = request.DefaultLanguage,
+				Timezone = request.Timezone,
+				Currency = request.Currency,
 				CreatedAt = DateTime.UtcNow
 			};
 
@@ -75,6 +83,10 @@ namespace RestflowAPI.Services.Tenants
 				TenantCode = tenant.TenantCode,
 				RestaurantName = tenant.RestaurantName,
 				Status = tenant.Status,
+				Country = tenant.Country,
+				DefaultLanguage = tenant.DefaultLanguage,
+				Timezone = tenant.Timezone,
+				Currency = tenant.Currency,
 				CreatedAt = tenant.CreatedAt
 			};
 		}
@@ -88,6 +100,10 @@ namespace RestflowAPI.Services.Tenants
 				RestaurantName = t.RestaurantName,
 				TenantCode = t.TenantCode,
 				Status = t.Status,
+				Country = t.Country,
+				DefaultLanguage = t.DefaultLanguage,
+				Timezone = t.Timezone,
+				Currency = t.Currency,
 				CreatedAt = t.CreatedAt
 			});
 		}

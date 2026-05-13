@@ -248,7 +248,11 @@ namespace RestflowAPI.Services.Settings
 			{
 				RestaurantName = tenant.RestaurantName,
 				RestaurantLogoUrl = tenant.RestaurantLogoUrl,
-				CuisineType = tenant.CuisineType
+				CuisineType = tenant.CuisineType,
+				Country = tenant.Country,
+				DefaultLanguage = tenant.DefaultLanguage,
+				Timezone = tenant.Timezone,
+				Currency = tenant.Currency
 			};
 		}
 
@@ -289,6 +293,26 @@ namespace RestflowAPI.Services.Settings
 			if (!string.IsNullOrWhiteSpace(request.CuisineType))
 			{
 				tenant.CuisineType = request.CuisineType;
+			}
+
+			if (!string.IsNullOrWhiteSpace(request.Country))
+			{
+				tenant.Country = request.Country;
+			}
+
+			if (!string.IsNullOrWhiteSpace(request.DefaultLanguage))
+			{
+				tenant.DefaultLanguage = request.DefaultLanguage;
+			}
+
+			if (!string.IsNullOrWhiteSpace(request.Timezone))
+			{
+				tenant.Timezone = request.Timezone;
+			}
+
+			if (!string.IsNullOrWhiteSpace(request.Currency))
+			{
+				tenant.Currency = request.Currency;
 			}
 
 			tenant.UpdatedAt = DateTime.UtcNow;
