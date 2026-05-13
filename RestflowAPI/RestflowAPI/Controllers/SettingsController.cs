@@ -126,5 +126,19 @@ namespace RestflowAPI.Controllers
 			var logoUrl = await _settingsService.UploadRestaurantLogoAsync(userId, file, cancellationToken);
 			return Ok(new { logoUrl, message = "Restaurant logo uploaded successfully." });
 		}
+
+		[HttpGet("platform")]
+		[Authorize(Policy = Permissions.Policies.SuperAdminOnly)]
+		public async Task<IActionResult> GetPlatformSettings(CancellationToken cancellationToken)
+		{
+			var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+			if (!Guid.TryParse(userIdString, out var userId))
+			{
+				return Unauthorized();
+			}
+
+			var result = await _settingsService.GetPlatformSettingsAsync(userId, cancellationToken);
+			return Ok(result);
+		}
 	}
 }

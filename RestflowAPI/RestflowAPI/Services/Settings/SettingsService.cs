@@ -6,6 +6,7 @@ using RestflowAPI.Exceptions;
 using RestflowAPI.Repository.Interfaces.Auth;
 using RestflowAPI.Repository.Interfaces.Settings;
 using RestflowAPI.Repository.Interfaces.Tenants;
+using RestflowAPI.Repository.Settings;
 using RestflowAPI.ServiceInterfaces.Settings;
 
 namespace RestflowAPI.Services.Settings
@@ -19,11 +20,13 @@ namespace RestflowAPI.Services.Settings
 		private readonly IFileService _fileService;
 		private readonly ITenantRepository _tenantRepository;
 		private readonly IValidator<UpdateRestaurantSettingsDto> _updateRestaurantSettingsDto;
+		private readonly IPlatformRepository _platformRepository;
 		private static readonly string[] AllowedImageExtensions = { ".jpg", ".jpeg", ".png" };
 		private const long MaxImageSize = 2 * 1024 * 1024; // 2MB
 
 		public SettingsService(ISettingsRepository settingsRepository, IAuthRepository authRepository, IValidator<UpdateProfileDto> updateProfileValidator,
-			IUnitOfWork unitOfWork, IFileService fileService, ITenantRepository tenantRepository, IValidator<UpdateRestaurantSettingsDto> updateRestaurantSettingsDto)
+			IUnitOfWork unitOfWork, IFileService fileService, ITenantRepository tenantRepository, IValidator<UpdateRestaurantSettingsDto> updateRestaurantSettingsDto
+			, IPlatformRepository platformRepository)
 		{
 			_settingsRepository = settingsRepository;
 			_authRepository = authRepository;
@@ -32,6 +35,7 @@ namespace RestflowAPI.Services.Settings
 			_fileService = fileService;
 			_tenantRepository = tenantRepository;
 			_updateRestaurantSettingsDto = updateRestaurantSettingsDto;
+			_platformRepository = platformRepository;
 		}
 		public async Task<UserProfileDto> GetUserProfileAsync(Guid userId, CancellationToken cancellationToken)
 		{
@@ -335,6 +339,38 @@ namespace RestflowAPI.Services.Settings
 				_fileService.DeleteFile(oldLogoPath);
 			}
 			return logoUrl;
+		}
+
+		public async Task<PlatformSettingsDto> GetPlatformSettingsAsync(Guid userId, CancellationToken cancellationToken)
+		{
+			var user = await _authRepository.FindByIdAsync(userId, cancellationToken);
+			if (user == null)
+			{
+				throw new NotFoundException("User not found ");
+			}
+			if (user.Status != UserStatus.Active)
+			{
+				throw new UnauthorizedException("account is inactive.");
+			}
+
+			var settings = await _platformRepository.GetAllAsync(cancellationToken);
+			var dto = new PlatformSettingsDto();
+			foreach (var setting in settings)
+			{
+				switch (setting.SettingKey)
+				{
+					case "SystemName": dto.SystemName = setting.SettingValue; break;
+					case "SystemLogoUrl": dto.SystemLogoUrl = setting.SettingValue; break;
+					case "DefaultLanguage": dto.DefaultLanguage = setting.SettingValue; break;
+					case "SupportEmail": dto.SupportEmail = setting.SettingValue; break;
+					case "CompanyName": dto.CompanyName = setting.SettingValue; break;
+					default:
+						dto.ApiConfigurations[setting.SettingKey] = setting.SettingValue;
+						break;
+				}
+			}
+
+			return dto;
 		}
 	}
 }
