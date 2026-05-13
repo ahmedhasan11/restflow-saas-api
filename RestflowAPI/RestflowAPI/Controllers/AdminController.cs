@@ -3,9 +3,12 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using RestflowAPI.Constants;
 using RestflowAPI.DTOs.Auth;
+using RestflowAPI.DTOs.Settings;
 using RestflowAPI.DTOs.Tenants;
 using RestflowAPI.ServiceInterfaces.Auth;
+using RestflowAPI.ServiceInterfaces.Settings;
 using RestflowAPI.ServiceInterfaces.Tenants;
+using System.Security.Claims;
 
 namespace RestflowAPI.Controllers
 {
@@ -16,11 +19,13 @@ namespace RestflowAPI.Controllers
 	{
 		private readonly ITenantService _tenantService;
 		private readonly IAuthService _authService;
+		private readonly ISettingsService _settingsService;
 
-		public AdminController(ITenantService tenantService, IAuthService authService)
+		public AdminController(ITenantService tenantService, IAuthService authService, ISettingsService settingsService)
 		{
 			_tenantService = tenantService;
 			_authService = authService;
+			_settingsService = settingsService;
 		}
 
 		[HttpPost("tenants")]
@@ -51,6 +56,49 @@ namespace RestflowAPI.Controllers
 		{
 			var result = await _tenantService.ChangeTenantStatusAsync(id, request, cancellationToken);
 			return Ok(result);
+		}
+
+		[HttpGet("platform")]
+		[Authorize(Policy = Permissions.Policies.SuperAdminOnly)]
+		public async Task<IActionResult> GetPlatformSettings(CancellationToken cancellationToken)
+		{
+			var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+			if (!Guid.TryParse(userIdString, out var userId))
+			{
+				return Unauthorized();
+			}
+
+			var result = await _settingsService.GetPlatformSettingsAsync(userId, cancellationToken);
+			return Ok(result);
+		}
+
+
+		[HttpPatch("platform")]
+		[Authorize(Policy = Permissions.Policies.SuperAdminOnly)]
+		public async Task<IActionResult> UpdatePlatformSettings([FromBody] UpdatePlatformSettingsDto request, CancellationToken cancellationToken)
+		{
+			var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+			if (!Guid.TryParse(userIdString, out var userId))
+			{
+				return Unauthorized();
+			}
+
+			await _settingsService.UpdatePlatformSettingsAsync(userId, request, cancellationToken);
+			return Ok(new { message = "Platform settings updated successfully." });
+		}
+
+		[HttpPatch("platform/api")]
+		[Authorize(Policy = Permissions.Policies.SuperAdminOnly)]
+		public async Task<IActionResult> UpdateApiSettings([FromBody] UpdatePlatformApiSettingsDto request, CancellationToken cancellationToken)
+		{
+			var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+			if (!Guid.TryParse(userIdString, out var userId))
+			{
+				return Unauthorized();
+			}
+
+			await _settingsService.UpdatePlatformApiSettingsAsync(userId, request, cancellationToken);
+			return Ok(new { message = "API configurations updated successfully." });
 		}
 	}
 }
