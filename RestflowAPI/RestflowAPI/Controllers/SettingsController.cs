@@ -112,5 +112,19 @@ namespace RestflowAPI.Controllers
 			await _settingsService.UpdateRestaurantSettingsAsync(userId, request, cancellationToken);
 			return Ok(new { message = "Restaurant settings updated successfully." });
 		}
+
+		[HttpPost("restaurant/logo")]
+		[Authorize(Policy = Permissions.Policies.OwnerOnly)]
+		public async Task<IActionResult> UploadRestaurantLogo(IFormFile file, CancellationToken cancellationToken)
+		{
+			var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+			if (!Guid.TryParse(userIdString, out var userId))
+			{
+				return Unauthorized();
+			}
+
+			var logoUrl = await _settingsService.UploadRestaurantLogoAsync(userId, file, cancellationToken);
+			return Ok(new { logoUrl, message = "Restaurant logo uploaded successfully." });
+		}
 	}
 }

@@ -16,5 +16,7 @@ namespace RestflowAPI.ServiceInterfaces.Settings
 		Task<RestaurantSettingsDto> GetRestaurantSettingsAsync(Guid userId, CancellationToken cancellationToken);
 
 		Task UpdateRestaurantSettingsAsync(Guid userId, UpdateRestaurantSettingsDto request, CancellationToken cancellationToken);
+
+		Task<string> UploadRestaurantLogoAsync(Guid userId, IFormFile file, CancellationToken cancellationToken);
 	}
 }

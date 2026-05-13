@@ -105,11 +105,8 @@ namespace RestflowAPI.Services.Settings
 			{
 				throw new UnauthorizedException("Account is inactive.");
 			}
-			// 3. Delete old image if exists to save space
-			if (!string.IsNullOrEmpty(user.ProfileImageUrl))
-			{
-				_fileService.DeleteFile(user.ProfileImageUrl);
-			}
+			// 1. Store the old path
+			var oldImagePath = user.ProfileImageUrl;
 			var imageUrl = await _fileService.UploadFileAsync(file, "profile_images", cancellationToken);
 
 			user.ProfileImageUrl = imageUrl;
@@ -117,6 +114,12 @@ namespace RestflowAPI.Services.Settings
 			user.UpdatedBy = userId;
 
 			await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+			// 4. Only delete the old image IF the upload and save were successful
+			if (!string.IsNullOrEmpty(oldImagePath))
+			{
+				_fileService.DeleteFile(oldImagePath);
+			}
 
 			return imageUrl;
 		}
@@ -283,6 +286,55 @@ namespace RestflowAPI.Services.Settings
 			tenant.UpdatedBy = userId;
 
 			await _unitOfWork.SaveChangesAsync(cancellationToken);
+		}
+
+		public async Task<string> UploadRestaurantLogoAsync(Guid userId, IFormFile file, CancellationToken cancellationToken)
+		{
+			if (file == null || file.Length == 0)
+				throw new AppValidationException("Please select a logo to upload.");
+
+			var extension = Path.GetExtension(file.FileName).ToLower();
+			if (!AllowedImageExtensions.Contains(extension))
+				throw new AppValidationException("Invalid file format. Supported formats are: .jpg, .jpeg, .png");
+
+			if (file.Length > MaxImageSize)
+				throw new AppValidationException("Logo size exceeds the 2MB limit.");
+
+			var user = await _authRepository.FindByIdAsync(userId, cancellationToken);
+			if (user == null)
+			{
+				throw new NotFoundException("User not found ");
+			}
+			if (user.Status != UserStatus.Active)
+			{
+				throw new UnauthorizedException("account is inactive.");
+			}
+
+			if (!user.TenantId.HasValue)
+				throw new ForbiddenException("User is not associated with a restaurant.");
+
+
+			var tenant = await _tenantRepository.GetByIdAsync(user.TenantId.Value, cancellationToken);
+			if (tenant == null)
+				throw new NotFoundException("Restaurant not found.");
+
+			var oldLogoPath = tenant.RestaurantLogoUrl;
+
+			var logoUrl = await _fileService.UploadFileAsync(file, "logos", cancellationToken);
+
+
+			tenant.RestaurantLogoUrl = logoUrl;
+			tenant.UpdatedAt = DateTime.UtcNow;
+			tenant.UpdatedBy = userId;
+
+			await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+			// 4. Only delete the old logo IF the upload and save were successful
+			if (!string.IsNullOrEmpty(oldLogoPath))
+			{
+				_fileService.DeleteFile(oldLogoPath);
+			}
+			return logoUrl;
 		}
 	}
 }
