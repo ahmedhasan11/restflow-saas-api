@@ -124,22 +124,83 @@ namespace RestflowAPI.Services.Settings
 				throw new UnauthorizedException("Account is inactive.");
 			}
 
+			// Define System Defaults here
+			var defaultSettings = new NotificationSettingsDto
+			{
+				EmailNotifications = true,
+				InAppNotifications = true,
+				AiInsightsNotifications = false,
+				InventoryAlerts = true,
+				ImportantAlerts = true
+			};
 			if (string.IsNullOrEmpty(user.NotificationPreferences))
 			{
 				// Return default settings if none are stored yet
-				return new NotificationSettingsDto();
+				return defaultSettings;
 			}
 
 			try
 			{
-				return System.Text.Json.JsonSerializer.Deserialize<NotificationSettingsDto>(user.NotificationPreferences)
-					   ?? new NotificationSettingsDto();
+				var savedSettings = System.Text.Json.JsonSerializer.Deserialize<NotificationSettingsDto>(user.NotificationPreferences);
+
+				// If the saved settings are valid, merge them with defaults (just in case some fields are missing)
+				if (savedSettings != null)
+				{
+					return new NotificationSettingsDto
+					{
+						EmailNotifications = savedSettings.EmailNotifications ?? defaultSettings.EmailNotifications,
+						InAppNotifications = savedSettings.InAppNotifications ?? defaultSettings.InAppNotifications,
+						AiInsightsNotifications = savedSettings.AiInsightsNotifications ?? defaultSettings.AiInsightsNotifications,
+						InventoryAlerts = savedSettings.InventoryAlerts ?? defaultSettings.InventoryAlerts,
+						ImportantAlerts = savedSettings.ImportantAlerts ?? defaultSettings.ImportantAlerts
+					};
+				}
+				return defaultSettings;
 			}
 			catch
 			{
 				// Fallback to defaults if JSON is corrupted
-				return new NotificationSettingsDto();
+				return defaultSettings;
 			}
+		}
+
+		public async Task UpdateNotificationSettingsAsync(Guid userId, NotificationSettingsDto request, CancellationToken cancellationToken)
+		{
+			var user = await _authRepository.FindByIdAsync(userId, cancellationToken);
+			if (user == null )
+			{
+				throw new NotFoundException("User not found ");
+			}
+			if(user.Status != UserStatus.Active)
+			{
+				throw new UnauthorizedException("account is inactive.");
+			}
+
+			// 1. Get current settings (or defaults if none exist)
+			var currentSettings = await GetNotificationSettingsAsync(userId, cancellationToken);
+
+			// 2. Merge changes: Only update the fields that the user actually sent (not null)
+			if (request.EmailNotifications.HasValue)
+				currentSettings.EmailNotifications = request.EmailNotifications.Value;
+
+			if (request.InAppNotifications.HasValue)
+				currentSettings.InAppNotifications = request.InAppNotifications.Value;
+
+			if (request.AiInsightsNotifications.HasValue)
+				currentSettings.AiInsightsNotifications = request.AiInsightsNotifications.Value;
+
+			if (request.InventoryAlerts.HasValue)
+				currentSettings.InventoryAlerts = request.InventoryAlerts.Value;
+
+			if (request.ImportantAlerts.HasValue)
+				currentSettings.ImportantAlerts = request.ImportantAlerts.Value;
+
+			// 3. Convert the merged object back into a JSON string
+			user.NotificationPreferences = System.Text.Json.JsonSerializer.Serialize(currentSettings);
+			user.UpdatedAt = DateTime.UtcNow;
+			user.UpdatedBy = userId;
+
+			await _unitOfWork.SaveChangesAsync(cancellationToken);
 		}
 	}
 }

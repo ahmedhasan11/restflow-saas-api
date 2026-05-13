@@ -10,5 +10,7 @@ namespace RestflowAPI.ServiceInterfaces.Settings
 		Task<string> UploadProfileImageAsync(Guid userId, IFormFile file, CancellationToken cancellationToken);
 
 		Task<NotificationSettingsDto> GetNotificationSettingsAsync(Guid userId, CancellationToken cancellationToken);
+
+		Task UpdateNotificationSettingsAsync(Guid userId, NotificationSettingsDto request, CancellationToken cancellationToken);
 	}
 }

@@ -69,5 +69,18 @@ namespace RestflowAPI.Controllers
 			var result = await _settingsService.GetNotificationSettingsAsync(userId, cancellationToken);
 			return Ok(result);
 		}
+
+		[HttpPatch("notifications")]
+		public async Task<IActionResult> UpdateNotificationSettings([FromBody] NotificationSettingsDto request, CancellationToken cancellationToken)
+		{
+			var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+			if (!Guid.TryParse(userIdString, out var userId))
+			{
+				return Unauthorized();
+			}
+
+			await _settingsService.UpdateNotificationSettingsAsync(userId, request, cancellationToken);
+			return Ok(new { message = "Notification preferences updated successfully." });
+		}
 	}
 }
