@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using RestflowAPI.Constants;
 using RestflowAPI.DTOs.Settings;
 using RestflowAPI.ServiceInterfaces.Settings;
 using System.Security.Claims;
@@ -81,6 +82,21 @@ namespace RestflowAPI.Controllers
 
 			await _settingsService.UpdateNotificationSettingsAsync(userId, request, cancellationToken);
 			return Ok(new { message = "Notification preferences updated successfully." });
+		}
+
+
+		[HttpGet("restaurant")]
+		[Authorize(Policy = Permissions.Policies.OwnerOnly)]
+		public async Task<IActionResult> GetRestaurantSettings(CancellationToken cancellationToken)
+		{
+			var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+			if (!Guid.TryParse(userIdString, out var userId))
+			{
+				return Unauthorized();
+			}
+
+			var result = await _settingsService.GetRestaurantSettingsAsync(userId, cancellationToken);
+			return Ok(result);
 		}
 	}
 }

@@ -5,6 +5,7 @@ using RestflowAPI.Enums;
 using RestflowAPI.Exceptions;
 using RestflowAPI.Repository.Interfaces.Auth;
 using RestflowAPI.Repository.Interfaces.Settings;
+using RestflowAPI.Repository.Interfaces.Tenants;
 using RestflowAPI.ServiceInterfaces.Settings;
 
 namespace RestflowAPI.Services.Settings
@@ -16,16 +17,19 @@ namespace RestflowAPI.Services.Settings
 		private readonly IValidator<UpdateProfileDto> _updateProfileValidator;
 		private readonly IUnitOfWork _unitOfWork;
 		private readonly IFileService _fileService;
+		private readonly ITenantRepository _tenantRepository;
 		private static readonly string[] AllowedImageExtensions = { ".jpg", ".jpeg", ".png" };
 		private const long MaxImageSize = 2 * 1024 * 1024; // 2MB
 
-		public SettingsService(ISettingsRepository settingsRepository, IAuthRepository authRepository, IValidator<UpdateProfileDto> updateProfileValidator, IUnitOfWork unitOfWork, IFileService fileService)
+		public SettingsService(ISettingsRepository settingsRepository, IAuthRepository authRepository, IValidator<UpdateProfileDto> updateProfileValidator,
+			IUnitOfWork unitOfWork, IFileService fileService, ITenantRepository tenantRepository)
 		{
 			_settingsRepository = settingsRepository;
 			_authRepository = authRepository;
 			_updateProfileValidator = updateProfileValidator;
 			_unitOfWork = unitOfWork;
 			_fileService = fileService;
+			_tenantRepository = tenantRepository;	
 		}
 		public async Task<UserProfileDto> GetUserProfileAsync(Guid userId, CancellationToken cancellationToken)
 		{
@@ -201,6 +205,37 @@ namespace RestflowAPI.Services.Settings
 			user.UpdatedBy = userId;
 
 			await _unitOfWork.SaveChangesAsync(cancellationToken);
+		}
+
+		public async Task<RestaurantSettingsDto> GetRestaurantSettingsAsync(Guid userId, CancellationToken cancellationToken)
+		{
+			var user = await _authRepository.FindByIdAsync(userId, cancellationToken);
+			if (user == null)
+			{
+				throw new NotFoundException("User not found ");
+			}
+			if (user.Status != UserStatus.Active)
+			{
+				throw new UnauthorizedException("account is inactive.");
+			}
+
+			if (!user.TenantId.HasValue)
+			{
+				throw new ForbiddenException("User is not associated with a restaurant.");
+			}
+
+			var tenant = await _tenantRepository.GetByIdAsync(user.TenantId.Value, cancellationToken);
+			if (tenant == null)
+			{
+				throw new NotFoundException("Restaurant settings not found.");
+			}
+
+			return new RestaurantSettingsDto
+			{
+				RestaurantName = tenant.RestaurantName,
+				RestaurantLogoUrl = tenant.RestaurantLogoUrl,
+				CuisineType = tenant.CuisineType
+			};
 		}
 	}
 }
