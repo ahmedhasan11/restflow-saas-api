@@ -1,6 +1,7 @@
 ﻿using FluentValidation;
 using RestflowAPI.Data.UnitOfWork;
 using RestflowAPI.DTOs.Settings;
+using RestflowAPI.Entities;
 using RestflowAPI.Enums;
 using RestflowAPI.Exceptions;
 using RestflowAPI.Repository.Interfaces.Auth;
@@ -20,13 +21,14 @@ namespace RestflowAPI.Services.Settings
 		private readonly IFileService _fileService;
 		private readonly ITenantRepository _tenantRepository;
 		private readonly IValidator<UpdateRestaurantSettingsDto> _updateRestaurantSettingsDto;
+		private readonly IValidator<UpdatePlatformSettingsDto> _updatePlatformSettingsDto;
 		private readonly IPlatformRepository _platformRepository;
 		private static readonly string[] AllowedImageExtensions = { ".jpg", ".jpeg", ".png" };
 		private const long MaxImageSize = 2 * 1024 * 1024; // 2MB
 
 		public SettingsService(ISettingsRepository settingsRepository, IAuthRepository authRepository, IValidator<UpdateProfileDto> updateProfileValidator,
 			IUnitOfWork unitOfWork, IFileService fileService, ITenantRepository tenantRepository, IValidator<UpdateRestaurantSettingsDto> updateRestaurantSettingsDto
-			, IPlatformRepository platformRepository)
+			, IPlatformRepository platformRepository, IValidator<UpdatePlatformSettingsDto> updatePlatformSettingsDto	)
 		{
 			_settingsRepository = settingsRepository;
 			_authRepository = authRepository;
@@ -36,6 +38,7 @@ namespace RestflowAPI.Services.Settings
 			_tenantRepository = tenantRepository;
 			_updateRestaurantSettingsDto = updateRestaurantSettingsDto;
 			_platformRepository = platformRepository;
+			_updatePlatformSettingsDto = updatePlatformSettingsDto;
 		}
 		public async Task<UserProfileDto> GetUserProfileAsync(Guid userId, CancellationToken cancellationToken)
 		{
@@ -371,6 +374,57 @@ namespace RestflowAPI.Services.Settings
 			}
 
 			return dto;
+		}
+
+		public async Task UpdatePlatformSettingsAsync(Guid userId, UpdatePlatformSettingsDto request, CancellationToken cancellationToken)
+		{
+			var validationResult = await _updatePlatformSettingsDto.ValidateAsync(request, cancellationToken);
+			if (!validationResult.IsValid)
+			{
+				throw new AppValidationException(validationResult.Errors.Select(e => e.ErrorMessage));
+			}
+
+			var user = await _authRepository.FindByIdAsync(userId, cancellationToken);
+			if (user == null)
+			{
+				throw new NotFoundException("User not found ");
+			}
+			if (user.Status != UserStatus.Active)
+			{
+				throw new UnauthorizedException("account is inactive.");
+			}
+
+			if (!string.IsNullOrWhiteSpace(request.SystemName))
+				await SavePlatformSetting("SystemName", request.SystemName, false, userId, cancellationToken);
+
+			if (!string.IsNullOrWhiteSpace(request.SystemLogoUrl))
+				await SavePlatformSetting("SystemLogoUrl", request.SystemLogoUrl, false, userId, cancellationToken);
+
+			if (!string.IsNullOrWhiteSpace(request.DefaultLanguage))
+				await SavePlatformSetting("DefaultLanguage", request.DefaultLanguage, false, userId, cancellationToken);
+
+			if (!string.IsNullOrWhiteSpace(request.SupportEmail))
+				await SavePlatformSetting("SupportEmail", request.SupportEmail, false, userId, cancellationToken);
+
+			if (request.CompanyName != null) // Allow empty string to clear company name
+				await SavePlatformSetting("CompanyName", request.CompanyName, false, userId, cancellationToken);
+
+			// 3. Save all changes
+			await _unitOfWork.SaveChangesAsync(cancellationToken);
+		}
+
+		private async Task SavePlatformSetting(string key, string value, bool isSecret, Guid userId, CancellationToken cancellationToken)
+		{
+			var setting = new PlatformSetting
+			{
+				SettingKey = key,
+				SettingValue = value,
+				IsSecret = isSecret
+			};
+			setting.CreatedAt = DateTime.UtcNow;
+			setting.CreatedBy = userId;
+
+			await _platformRepository.SaveAsync(setting, cancellationToken);
 		}
 	}
 }

@@ -140,5 +140,20 @@ namespace RestflowAPI.Controllers
 			var result = await _settingsService.GetPlatformSettingsAsync(userId, cancellationToken);
 			return Ok(result);
 		}
+
+
+		[HttpPatch("platform")]
+		[Authorize(Policy = Permissions.Policies.SuperAdminOnly)]
+		public async Task<IActionResult> UpdatePlatformSettings([FromBody] UpdatePlatformSettingsDto request, CancellationToken cancellationToken)
+		{
+			var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+			if (!Guid.TryParse(userIdString, out var userId))
+			{
+				return Unauthorized();
+			}
+
+			await _settingsService.UpdatePlatformSettingsAsync(userId, request, cancellationToken);
+			return Ok(new { message = "Platform settings updated successfully." });
+		}
 	}
 }

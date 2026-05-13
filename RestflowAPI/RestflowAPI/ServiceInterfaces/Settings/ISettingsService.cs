@@ -21,5 +21,6 @@ namespace RestflowAPI.ServiceInterfaces.Settings
 
 		Task<PlatformSettingsDto> GetPlatformSettingsAsync(Guid userId, CancellationToken cancellationToken);
 
+		Task UpdatePlatformSettingsAsync(Guid userId, UpdatePlatformSettingsDto request, CancellationToken cancellationToken);
 	}
 }
