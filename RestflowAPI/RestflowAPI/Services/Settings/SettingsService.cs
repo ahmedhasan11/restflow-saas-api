@@ -114,5 +114,32 @@ namespace RestflowAPI.Services.Settings
 
 			return imageUrl;
 		}
+
+		public async Task<NotificationSettingsDto> GetNotificationSettingsAsync(Guid userId, CancellationToken cancellationToken)
+		{
+			var user = await _authRepository.FindByIdAsync(userId, cancellationToken);
+			if (user == null) throw new NotFoundException("User not found.");
+			if (user.Status != UserStatus.Active)
+			{
+				throw new UnauthorizedException("Account is inactive.");
+			}
+
+			if (string.IsNullOrEmpty(user.NotificationPreferences))
+			{
+				// Return default settings if none are stored yet
+				return new NotificationSettingsDto();
+			}
+
+			try
+			{
+				return System.Text.Json.JsonSerializer.Deserialize<NotificationSettingsDto>(user.NotificationPreferences)
+					   ?? new NotificationSettingsDto();
+			}
+			catch
+			{
+				// Fallback to defaults if JSON is corrupted
+				return new NotificationSettingsDto();
+			}
+		}
 	}
 }

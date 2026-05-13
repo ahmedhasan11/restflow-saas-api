@@ -56,5 +56,18 @@ namespace RestflowAPI.Controllers
 			var imageUrl = await _settingsService.UploadProfileImageAsync(userId, file, cancellationToken);
 			return Ok(new { imageUrl, message = "Profile image uploaded successfully." });
 		}
+
+		[HttpGet("notifications")]
+		public async Task<IActionResult> GetNotificationSettings(CancellationToken cancellationToken)
+		{
+			var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+			if (!Guid.TryParse(userIdString, out var userId))
+			{
+				return Unauthorized();
+			}
+
+			var result = await _settingsService.GetNotificationSettingsAsync(userId, cancellationToken);
+			return Ok(result);
+		}
 	}
 }
