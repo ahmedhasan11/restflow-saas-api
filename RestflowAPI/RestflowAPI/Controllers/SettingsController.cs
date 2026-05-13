@@ -98,5 +98,19 @@ namespace RestflowAPI.Controllers
 			var result = await _settingsService.GetRestaurantSettingsAsync(userId, cancellationToken);
 			return Ok(result);
 		}
+
+		[HttpPatch("restaurant")]
+		[Authorize(Policy = Permissions.Policies.OwnerOnly)]
+		public async Task<IActionResult> UpdateRestaurantSettings([FromBody] UpdateRestaurantSettingsDto request, CancellationToken cancellationToken)
+		{
+			var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+			if (!Guid.TryParse(userIdString, out var userId))
+			{
+				return Unauthorized();
+			}
+
+			await _settingsService.UpdateRestaurantSettingsAsync(userId, request, cancellationToken);
+			return Ok(new { message = "Restaurant settings updated successfully." });
+		}
 	}
 }

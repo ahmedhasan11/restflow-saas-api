@@ -14,5 +14,7 @@ namespace RestflowAPI.ServiceInterfaces.Settings
 		Task UpdateNotificationSettingsAsync(Guid userId, NotificationSettingsDto request, CancellationToken cancellationToken);
 
 		Task<RestaurantSettingsDto> GetRestaurantSettingsAsync(Guid userId, CancellationToken cancellationToken);
+
+		Task UpdateRestaurantSettingsAsync(Guid userId, UpdateRestaurantSettingsDto request, CancellationToken cancellationToken);
 	}
 }

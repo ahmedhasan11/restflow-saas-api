@@ -18,18 +18,20 @@ namespace RestflowAPI.Services.Settings
 		private readonly IUnitOfWork _unitOfWork;
 		private readonly IFileService _fileService;
 		private readonly ITenantRepository _tenantRepository;
+		private readonly IValidator<UpdateRestaurantSettingsDto> _updateRestaurantSettingsDto;
 		private static readonly string[] AllowedImageExtensions = { ".jpg", ".jpeg", ".png" };
 		private const long MaxImageSize = 2 * 1024 * 1024; // 2MB
 
 		public SettingsService(ISettingsRepository settingsRepository, IAuthRepository authRepository, IValidator<UpdateProfileDto> updateProfileValidator,
-			IUnitOfWork unitOfWork, IFileService fileService, ITenantRepository tenantRepository)
+			IUnitOfWork unitOfWork, IFileService fileService, ITenantRepository tenantRepository, IValidator<UpdateRestaurantSettingsDto> updateRestaurantSettingsDto)
 		{
 			_settingsRepository = settingsRepository;
 			_authRepository = authRepository;
 			_updateProfileValidator = updateProfileValidator;
 			_unitOfWork = unitOfWork;
 			_fileService = fileService;
-			_tenantRepository = tenantRepository;	
+			_tenantRepository = tenantRepository;
+			_updateRestaurantSettingsDto = updateRestaurantSettingsDto;
 		}
 		public async Task<UserProfileDto> GetUserProfileAsync(Guid userId, CancellationToken cancellationToken)
 		{
@@ -236,6 +238,51 @@ namespace RestflowAPI.Services.Settings
 				RestaurantLogoUrl = tenant.RestaurantLogoUrl,
 				CuisineType = tenant.CuisineType
 			};
+		}
+
+		public async Task UpdateRestaurantSettingsAsync(Guid userId, UpdateRestaurantSettingsDto request, CancellationToken cancellationToken)
+		{
+			var validationResult = await _updateRestaurantSettingsDto.ValidateAsync(request, cancellationToken);
+			if (!validationResult.IsValid)
+			{
+				throw new AppValidationException(validationResult.Errors.Select(e => e.ErrorMessage));
+			}
+
+			var user = await _authRepository.FindByIdAsync(userId, cancellationToken);
+			if (user == null)
+			{
+				throw new NotFoundException("User not found ");
+			}
+			if (user.Status != UserStatus.Active)
+			{
+				throw new UnauthorizedException("account is inactive.");
+			}
+
+			if (!user.TenantId.HasValue)
+			{
+				throw new ForbiddenException("User is not associated with a restaurant.");
+			}
+
+			var tenant = await _tenantRepository.GetByIdAsync(user.TenantId.Value, cancellationToken);
+			if (tenant == null)
+			{
+				throw new NotFoundException("Restaurant not found.");
+			}
+
+			if (!string.IsNullOrWhiteSpace(request.RestaurantName))
+			{
+				tenant.RestaurantName = request.RestaurantName;
+			}
+
+			if (!string.IsNullOrWhiteSpace(request.CuisineType))
+			{
+				tenant.CuisineType = request.CuisineType;
+			}
+
+			tenant.UpdatedAt = DateTime.UtcNow;
+			tenant.UpdatedBy = userId;
+
+			await _unitOfWork.SaveChangesAsync(cancellationToken);
 		}
 	}
 }
