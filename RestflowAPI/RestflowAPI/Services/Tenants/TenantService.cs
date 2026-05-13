@@ -104,7 +104,6 @@ namespace RestflowAPI.Services.Tenants
 				CreatedAt = t.CreatedAt
 			});
 		}
-
 		public async Task<TenantResponseDto> UpdateTenantAsync(Guid tenantId, UpdateTenantRequestDto request, CancellationToken cancellationToken)
 		{
 			var tenant = await _tenantRepository.GetByIdAsync(tenantId, cancellationToken);

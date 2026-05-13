@@ -67,7 +67,7 @@ namespace RestflowAPI.Controllers
 		}
 
 		[HttpGet("platform")]
-		[Authorize(Policy = Permissions.Policies.SuperAdminOnly)]
+
 		public async Task<IActionResult> GetPlatformSettings(CancellationToken cancellationToken)
 		{
 			var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -80,9 +80,7 @@ namespace RestflowAPI.Controllers
 			return Ok(result);
 		}
 
-
 		[HttpPatch("platform")]
-		[Authorize(Policy = Permissions.Policies.SuperAdminOnly)]
 		public async Task<IActionResult> UpdatePlatformSettings([FromBody] UpdatePlatformSettingsDto request, CancellationToken cancellationToken)
 		{
 			var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -96,7 +94,6 @@ namespace RestflowAPI.Controllers
 		}
 
 		[HttpPatch("platform/api")]
-		[Authorize(Policy = Permissions.Policies.SuperAdminOnly)]
 		public async Task<IActionResult> UpdateApiSettings([FromBody] UpdatePlatformApiSettingsDto request, CancellationToken cancellationToken)
 		{
 			var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
