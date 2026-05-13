@@ -22,13 +22,14 @@ namespace RestflowAPI.Services.Settings
 		private readonly ITenantRepository _tenantRepository;
 		private readonly IValidator<UpdateRestaurantSettingsDto> _updateRestaurantSettingsDto;
 		private readonly IValidator<UpdatePlatformSettingsDto> _updatePlatformSettingsDto;
+		private readonly IValidator<UpdatePlatformApiSettingsDto> _updatePlatformApiSettingsDto;
 		private readonly IPlatformRepository _platformRepository;
 		private static readonly string[] AllowedImageExtensions = { ".jpg", ".jpeg", ".png" };
 		private const long MaxImageSize = 2 * 1024 * 1024; // 2MB
 
 		public SettingsService(ISettingsRepository settingsRepository, IAuthRepository authRepository, IValidator<UpdateProfileDto> updateProfileValidator,
 			IUnitOfWork unitOfWork, IFileService fileService, ITenantRepository tenantRepository, IValidator<UpdateRestaurantSettingsDto> updateRestaurantSettingsDto
-			, IPlatformRepository platformRepository, IValidator<UpdatePlatformSettingsDto> updatePlatformSettingsDto	)
+			, IPlatformRepository platformRepository, IValidator<UpdatePlatformSettingsDto> updatePlatformSettingsDto, IValidator<UpdatePlatformApiSettingsDto> updatePlatformApiSettingsDto)
 		{
 			_settingsRepository = settingsRepository;
 			_authRepository = authRepository;
@@ -39,6 +40,7 @@ namespace RestflowAPI.Services.Settings
 			_updateRestaurantSettingsDto = updateRestaurantSettingsDto;
 			_platformRepository = platformRepository;
 			_updatePlatformSettingsDto = updatePlatformSettingsDto;
+			_updatePlatformApiSettingsDto = updatePlatformApiSettingsDto;
 		}
 		public async Task<UserProfileDto> GetUserProfileAsync(Guid userId, CancellationToken cancellationToken)
 		{
@@ -425,6 +427,35 @@ namespace RestflowAPI.Services.Settings
 			setting.CreatedBy = userId;
 
 			await _platformRepository.SaveAsync(setting, cancellationToken);
+		}
+
+		public async Task UpdatePlatformApiSettingsAsync(Guid userId, UpdatePlatformApiSettingsDto request, CancellationToken cancellationToken)
+		{
+			var validationResult = await _updatePlatformApiSettingsDto.ValidateAsync(request, cancellationToken);
+			if (!validationResult.IsValid)
+			{
+				throw new AppValidationException(validationResult.Errors.Select(e => e.ErrorMessage));
+			}
+			var user = await _authRepository.FindByIdAsync(userId, cancellationToken);
+			if (user == null)
+			{
+				throw new NotFoundException("User not found ");
+			}
+			if (user.Status != UserStatus.Active)
+			{
+				throw new UnauthorizedException("account is inactive.");
+			}
+
+			foreach (var setting in request.Settings)
+			{
+				if (!string.IsNullOrWhiteSpace(setting.Key))
+				{
+					// API settings are marked as IsSecret = true
+					await SavePlatformSetting(setting.Key, setting.Value, true, userId, cancellationToken);
+				}
+			}
+
+			await _unitOfWork.SaveChangesAsync(cancellationToken);
 		}
 	}
 }
