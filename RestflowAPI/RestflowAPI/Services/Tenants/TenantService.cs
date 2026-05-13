@@ -20,7 +20,6 @@ namespace RestflowAPI.Services.Tenants
 			_unitOfWork = unitOfWork;
 			_createTenantValidator = createTenantValidator;	
 		}
-
 		public async Task<TenantResponseDto> ChangeTenantStatusAsync(Guid tenantId, ChangeTenantStatusDto request, CancellationToken cancellationToken)
 		{
 			var tenant = await _tenantRepository.GetByIdAsync(tenantId, cancellationToken);
@@ -47,7 +46,6 @@ namespace RestflowAPI.Services.Tenants
 				CreatedAt = tenant.CreatedAt
 			};
 		}
-
 		public async Task<TenantResponseDto> CreateTenantAsync(CreateTenantRequestDto request, CancellationToken cancellationToken)
 		{
 			var result = await _createTenantValidator.ValidateAsync(request, cancellationToken);
@@ -90,7 +88,6 @@ namespace RestflowAPI.Services.Tenants
 				CreatedAt = tenant.CreatedAt
 			};
 		}
-
 		public async Task<IEnumerable<TenantResponseDto>> GetAllTenantsAsync(CancellationToken cancellationToken)
 		{
 		    var tenants = await _tenantRepository.GetAllAsync(cancellationToken);
@@ -106,6 +103,50 @@ namespace RestflowAPI.Services.Tenants
 				Currency = t.Currency,
 				CreatedAt = t.CreatedAt
 			});
+		}
+
+		public async Task<TenantResponseDto> UpdateTenantAsync(Guid tenantId, UpdateTenantRequestDto request, CancellationToken cancellationToken)
+		{
+			var tenant = await _tenantRepository.GetByIdAsync(tenantId, cancellationToken);
+			if (tenant == null)
+			{
+				throw new NotFoundException("Tenant not found.");
+			}
+
+			if (!string.IsNullOrWhiteSpace(request.RestaurantName))
+				tenant.RestaurantName = request.RestaurantName;
+
+			if (request.Status.HasValue)
+				tenant.Status = request.Status.Value;
+
+			if (!string.IsNullOrWhiteSpace(request.Country))
+				tenant.Country = request.Country;
+
+			if (!string.IsNullOrWhiteSpace(request.DefaultLanguage))
+				tenant.DefaultLanguage = request.DefaultLanguage;
+
+			if (!string.IsNullOrWhiteSpace(request.Timezone))
+				tenant.Timezone = request.Timezone;
+
+			if (!string.IsNullOrWhiteSpace(request.Currency))
+				tenant.Currency = request.Currency;
+
+			tenant.UpdatedAt = DateTime.UtcNow;
+			
+			await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+			return new TenantResponseDto
+			{
+				Id = tenant.Id,
+				TenantCode = tenant.TenantCode,
+				RestaurantName = tenant.RestaurantName,
+				Status = tenant.Status,
+				Country = tenant.Country,
+				DefaultLanguage = tenant.DefaultLanguage,
+				Timezone = tenant.Timezone,
+				Currency = tenant.Currency,
+				CreatedAt = tenant.CreatedAt
+			};
 		}
 	}
 }
