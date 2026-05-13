@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using RestflowAPI.DTOs.Settings;
 using RestflowAPI.ServiceInterfaces.Settings;
 using System.Security.Claims;
 
@@ -29,6 +30,19 @@ namespace RestflowAPI.Controllers
 
 			var result = await _settingsService.GetUserProfileAsync(userId, cancellationToken);
 			return Ok(result);
+		}
+
+		[HttpPatch("profile")]
+		public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDto request, CancellationToken cancellationToken)
+		{
+			var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+			if (!Guid.TryParse(userIdString, out var userId))
+			{
+				return Unauthorized();
+			}
+
+			await _settingsService.UpdateProfileAsync(userId, request, cancellationToken);
+			return Ok(new { message = "Profile updated successfully." });
 		}
 	}
 }
