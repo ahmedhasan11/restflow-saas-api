@@ -77,6 +77,8 @@ namespace RestflowAPI
 			builder.Services.AddScoped<ISettingsRepository, SettingsRepository>();
 			builder.Services.AddScoped<ISettingsService, SettingsService>();
 
+			builder.Services.AddScoped<IFileService, FileService>();
+
 			#endregion
 
 			#region Fluent Validation Configuration

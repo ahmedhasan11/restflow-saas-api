@@ -6,5 +6,7 @@ namespace RestflowAPI.ServiceInterfaces.Settings
 	{
 		Task<UserProfileDto> GetUserProfileAsync(Guid userId, CancellationToken cancellationToken);
 		Task UpdateProfileAsync(Guid userId, UpdateProfileDto request, CancellationToken cancellationToken);
+
+		Task<string> UploadProfileImageAsync(Guid userId, IFormFile file, CancellationToken cancellationToken);
 	}
 }

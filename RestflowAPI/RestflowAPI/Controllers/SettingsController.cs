@@ -13,7 +13,6 @@ namespace RestflowAPI.Controllers
 	public class SettingsController : ControllerBase
 	{
 		private readonly ISettingsService _settingsService;
-
 		public SettingsController(ISettingsService settingsService)
 		{
 			_settingsService = settingsService;
@@ -43,6 +42,19 @@ namespace RestflowAPI.Controllers
 
 			await _settingsService.UpdateProfileAsync(userId, request, cancellationToken);
 			return Ok(new { message = "Profile updated successfully." });
+		}
+
+		[HttpPost("profile/image")]
+		public async Task<IActionResult> UploadProfileImage(IFormFile file, CancellationToken cancellationToken)
+		{
+			var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+			if (!Guid.TryParse(userIdString, out var userId))
+			{
+				return Unauthorized();
+			}
+
+			var imageUrl = await _settingsService.UploadProfileImageAsync(userId, file, cancellationToken);
+			return Ok(new { imageUrl, message = "Profile image uploaded successfully." });
 		}
 	}
 }
