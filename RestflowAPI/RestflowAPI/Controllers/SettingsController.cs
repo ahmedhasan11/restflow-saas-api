@@ -46,6 +46,7 @@ namespace RestflowAPI.Controllers
 		}
 
 		[HttpPost("profile/image")]
+		[Consumes("multipart/form-data")]
 		public async Task<IActionResult> UploadProfileImage(IFormFile file, CancellationToken cancellationToken)
 		{
 			var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -114,6 +115,7 @@ namespace RestflowAPI.Controllers
 
 		[HttpPost("restaurant/logo")]
 		[Authorize(Policy = Permissions.Policies.OwnerOnly)]
+		[Consumes("multipart/form-data")]
 		public async Task<IActionResult> UploadRestaurantLogo(IFormFile file, CancellationToken cancellationToken)
 		{
 			var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
