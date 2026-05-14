@@ -16,7 +16,12 @@ public class TenantConfiguration : IEntityTypeConfiguration<Tenant>
         
         builder.Property(t => t.RestaurantName).IsRequired().HasMaxLength(150);
         builder.Property(t => t.Status).IsRequired().HasConversion<string>();
-        
-        builder.HasQueryFilter(t => t.DeletedAt == null);
+
+		builder.Property(t => t.Country).IsRequired().HasMaxLength(100);
+		builder.Property(t => t.DefaultLanguage).IsRequired().HasMaxLength(5).HasDefaultValue("en");
+		builder.Property(t => t.Timezone).IsRequired().HasMaxLength(50).HasDefaultValue("UTC");
+		builder.Property(t => t.Currency).IsRequired().HasMaxLength(3).HasDefaultValue("USD");
+
+		builder.HasQueryFilter(t => t.DeletedAt == null);
     }
 }

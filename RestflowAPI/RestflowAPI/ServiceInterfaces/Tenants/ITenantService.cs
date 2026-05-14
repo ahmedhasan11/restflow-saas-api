@@ -9,5 +9,7 @@ namespace RestflowAPI.ServiceInterfaces.Tenants
 		Task<IEnumerable<TenantResponseDto>> GetAllTenantsAsync(CancellationToken cancellationToken);
 
 		Task<TenantResponseDto> ChangeTenantStatusAsync(Guid tenantId, ChangeTenantStatusDto request, CancellationToken cancellationToken);
+
+		Task<TenantResponseDto> UpdateTenantAsync(Guid tenantId, UpdateTenantRequestDto request, CancellationToken cancellationToken);
 	}
 }

@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using RestflowAPI.Data;
 using RestflowAPI.Entities;
 using RestflowAPI.Repository.Interfaces.Tenants;
@@ -8,10 +9,12 @@ namespace RestflowAPI.Repository.Tenants
 	public class TenantRepository : ITenantRepository
 	{
 		private readonly ApplicationDbContext _db;
+		private readonly UserManager<ApplicationUser> _userManager;
 
-		public TenantRepository(ApplicationDbContext db)
+		public TenantRepository(ApplicationDbContext db, UserManager<ApplicationUser> userManager)
 		{
 			_db = db;
+			_userManager = userManager;
 		}
 		public async Task CreateAsync(Tenant tenant, CancellationToken cancellationToken)
 		{

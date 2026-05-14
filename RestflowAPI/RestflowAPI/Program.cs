@@ -24,6 +24,10 @@ using RestflowAPI.Repository.Interfaces.Customers;
 using RestflowAPI.Repository.Customers;
 using RestflowAPI.ServiceInterfaces.Customers;
 using RestflowAPI.Services.Customers;
+using RestflowAPI.Repository.Interfaces.Settings;
+using RestflowAPI.Repository.Settings;
+using RestflowAPI.ServiceInterfaces.Settings;
+using RestflowAPI.Services.Settings;
 
 namespace RestflowAPI
 {
@@ -70,6 +74,11 @@ namespace RestflowAPI
 			builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 			builder.Services.AddScoped<ICustomerService, CustomerService>();
 
+			builder.Services.AddScoped<ISettingsRepository, SettingsRepository>();
+			builder.Services.AddScoped<ISettingsService, SettingsService>();
+
+			builder.Services.AddScoped<IFileService, FileService>();
+			builder.Services.AddScoped<IPlatformRepository, PlatformRepository>();
 			#endregion
 
 			#region Fluent Validation Configuration
@@ -183,6 +192,8 @@ namespace RestflowAPI
             }
 
             app.UseHttpsRedirection();
+
+			app.UseStaticFiles();
 
 			app.UseAuthentication();
 			app.UseAuthorization();

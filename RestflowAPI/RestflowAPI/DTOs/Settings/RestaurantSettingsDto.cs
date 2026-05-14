@@ -1,12 +1,10 @@
-﻿using RestflowAPI.Enums;
-
-namespace RestflowAPI.DTOs.Tenants
+﻿namespace RestflowAPI.DTOs.Settings
 {
-	public class CreateTenantRequestDto
+	public class RestaurantSettingsDto
 	{
 		public string RestaurantName { get; set; } = string.Empty;
-		public string TenantCode { get; set; } = string.Empty;
-		public TenantStatus Status { get; set; } = TenantStatus.Active;
+		public string? RestaurantLogoUrl { get; set; }
+		public string? CuisineType { get; set; }
 		public string Country { get; set; } = string.Empty;
 		public string DefaultLanguage { get; set; } = "en";
 		public string Timezone { get; set; } = "UTC";
