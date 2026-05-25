@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using RestflowAPI.Constants;
+using RestflowAPI.DTOs.Employees;
 using RestflowAPI.ServiceInterfaces.Employees;
 using RestflowAPI.Services.Employees;
 
@@ -24,6 +25,12 @@ namespace RestflowAPI.Controllers
 		{
 			var staff = await _employeesService.GetStaffListAsync(cancellationToken);
 			return Ok(staff);
+		}
+		[HttpPost]
+		public async Task<IActionResult> CreateEmployee([FromBody] CreateEmployeeDto request, CancellationToken cancellationToken)
+		{
+			var employee = await _employeesService.CreateEmployeeAsync(request, cancellationToken);
+			return CreatedAtAction(nameof(GetStaffList), new { id = employee.Id }, employee);
 		}
 	}
 }

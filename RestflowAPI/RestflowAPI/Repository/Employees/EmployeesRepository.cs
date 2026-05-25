@@ -2,19 +2,23 @@
 using RestflowAPI.Data;
 using RestflowAPI.DTOs.Employees;
 using RestflowAPI.Repository.Interfaces.Employees;
+using RestflowAPI.ServiceInterfaces.Tenants;
 
 namespace RestflowAPI.Repository.Employees
 {
 	public class EmployeesRepository : IEmployeesRepository
 	{
 		private readonly ApplicationDbContext _db;
-		public EmployeesRepository(ApplicationDbContext db)
+		private readonly ICurrentTenantService _tenantService;
+		public EmployeesRepository(ApplicationDbContext db, ICurrentTenantService tenantService)
 		{
 			_db = db;
+			_tenantService = tenantService;
 		}
 		public async Task<List<EmployeeDto>> GetStaffListAsync(CancellationToken cancellationToken)
 		{
-			return await _db.Users
+			var tenantId = _tenantService.TenantId;
+			return await _db.Users.Where(u => u.TenantId == tenantId)
 				.Select(u => new EmployeeDto
 				{
 					Id = u.Id,
