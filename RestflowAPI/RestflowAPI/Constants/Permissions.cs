@@ -7,6 +7,10 @@
 			public const string SuperAdmin = "SuperAdmin";
 			public const string Owner = "Owner";
 			public const string Employee = "Employee";
+			public const string Cashier = "Cashier";
+			public const string Manager = "Manager";
+			public const string KitchenStaff = "Kitchen Staff";
+			public const string InventoryClerk = "Inventory Clerk";
 		}
 
 		public static class Policies
