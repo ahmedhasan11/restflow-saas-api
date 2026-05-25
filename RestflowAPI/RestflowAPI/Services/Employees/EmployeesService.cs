@@ -90,6 +90,16 @@ namespace RestflowAPI.Services.Employees
 			};
 		}
 
+		public async Task<EmployeeDto> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+		{
+			var employee = await _employeesRepository.GetByIdAsync(id, cancellationToken);
+			if (employee == null)
+			{
+				throw new NotFoundException("Employee not found.");
+			}
+			return employee;
+		}
+
 		public async Task<List<EmployeeDto>> GetStaffListAsync(CancellationToken cancellationToken)
 		{
 			return await _employeesRepository.GetStaffListAsync(cancellationToken);

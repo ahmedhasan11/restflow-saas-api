@@ -30,7 +30,13 @@ namespace RestflowAPI.Controllers
 		public async Task<IActionResult> CreateEmployee([FromBody] CreateEmployeeDto request, CancellationToken cancellationToken)
 		{
 			var employee = await _employeesService.CreateEmployeeAsync(request, cancellationToken);
-			return CreatedAtAction(nameof(GetStaffList), new { id = employee.Id }, employee);
+			return CreatedAtAction(nameof(GetEmployeeDetails), new { id = employee.Id }, employee);
+		}
+		[HttpGet("{id}")]
+		public async Task<IActionResult> GetEmployeeDetails([FromRoute] Guid id, CancellationToken cancellationToken)
+		{
+			var employee = await _employeesService.GetByIdAsync(id, cancellationToken);
+			return Ok(employee);
 		}
 	}
 }

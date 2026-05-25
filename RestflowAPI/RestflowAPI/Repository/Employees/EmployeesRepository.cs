@@ -15,6 +15,33 @@ namespace RestflowAPI.Repository.Employees
 			_db = db;
 			_tenantService = tenantService;
 		}
+
+		public async Task<EmployeeDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+		{
+			var tenantId = _tenantService.TenantId;
+			return await _db.Users.Where(u => u.Id == id && u.TenantId == tenantId)
+				.Select(u => new EmployeeDto
+				{
+					Id = u.Id,
+					FullName = u.FullName,
+					Email = u.Email ?? string.Empty,
+					PhoneNumber = u.PhoneNumber ?? string.Empty,
+					Status = u.Status,
+					CreatedAt = u.CreatedAt,
+					UpdatedAt = u.UpdatedAt,
+					Role = _db.UserRoles
+						.Where(ur => ur.UserId == u.Id)
+						.Join(
+							_db.Roles,
+							ur => ur.RoleId,
+							r => r.Id,
+							(ur, r) => r.Name
+						)
+						.FirstOrDefault() ?? string.Empty
+				})
+				.FirstOrDefaultAsync(cancellationToken);
+		}
+
 		public async Task<List<EmployeeDto>> GetStaffListAsync(CancellationToken cancellationToken)
 		{
 			var tenantId = _tenantService.TenantId;
@@ -27,6 +54,7 @@ namespace RestflowAPI.Repository.Employees
 					PhoneNumber = u.PhoneNumber ?? string.Empty,
 					Status = u.Status,
 					CreatedAt = u.CreatedAt,
+					UpdatedAt= u.UpdatedAt,
 					Role = _db.UserRoles
 						.Where(ur => ur.UserId == u.Id)
 						.Join(

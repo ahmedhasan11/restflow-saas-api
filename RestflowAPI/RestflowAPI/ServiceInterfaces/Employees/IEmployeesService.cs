@@ -6,5 +6,7 @@ namespace RestflowAPI.ServiceInterfaces.Employees
 	{
 		Task<List<EmployeeDto>> GetStaffListAsync(CancellationToken cancellationToken);
 		Task<EmployeeDto> CreateEmployeeAsync(CreateEmployeeDto request, CancellationToken cancellationToken);
+
+		Task<EmployeeDto> GetByIdAsync(Guid id, CancellationToken cancellationToken);
 	}
 }
