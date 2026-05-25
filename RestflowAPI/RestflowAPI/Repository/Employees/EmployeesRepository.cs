@@ -29,6 +29,7 @@ namespace RestflowAPI.Repository.Employees
 				.Select(e => new EmployeeDto
 				{
 					Id = e.Id,
+					UserId = e.UserId,
 					FullName = e.FullName,
 					Email = e.Email,
 					PhoneNumber = e.PhoneNumber,
@@ -73,6 +74,7 @@ namespace RestflowAPI.Repository.Employees
 				.Select(e => new EmployeeDto
 				{
 					Id = e.Id,
+					UserId = e.UserId,
 					FullName = e.FullName,
 					Email = e.Email,
 					PhoneNumber = e.PhoneNumber,

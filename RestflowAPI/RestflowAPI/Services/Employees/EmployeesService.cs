@@ -111,6 +111,7 @@ namespace RestflowAPI.Services.Employees
 			return new EmployeeDto
 			{
 				Id = employee.Id, // Returning Employee.Id for business operational tracking
+				UserId=employee.UserId,
 				FullName = employee.FullName,
 				Email = employee.Email,
 				PhoneNumber = employee.PhoneNumber,
@@ -242,6 +243,7 @@ namespace RestflowAPI.Services.Employees
 			return new EmployeeDto
 			{
 				Id = employee.Id,
+				UserId = employee.UserId,
 				FullName = employee.FullName,
 				Email = employee.Email,
 				PhoneNumber = employee.PhoneNumber,
@@ -292,6 +294,7 @@ namespace RestflowAPI.Services.Employees
 			return new EmployeeDto
 			{
 				Id = employee.Id,
+				UserId = employee.UserId,
 				FullName = employee.FullName,
 				Email = employee.Email,
 				PhoneNumber = employee.PhoneNumber,
