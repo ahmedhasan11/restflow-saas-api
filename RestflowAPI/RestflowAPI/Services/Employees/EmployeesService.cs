@@ -1,4 +1,6 @@
 ﻿using FluentValidation;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using RestflowAPI.Data.UnitOfWork;
 using RestflowAPI.DTOs.Employees;
 using RestflowAPI.Entities;
@@ -17,15 +19,23 @@ namespace RestflowAPI.Services.Employees
 		private readonly IEmployeesRepository _employeesRepository;
 		private readonly IUnitOfWork _unitOfWork;
 		private readonly IValidator<CreateEmployeeDto> _createEmployeeValidator;
+		private	readonly IValidator<UpdateEmployeeDto> _updateEmployeeValidator;
 		private readonly IAuthRepository _authRepository;
 		private readonly ICurrentTenantService _tenantService;
-		public EmployeesService(IEmployeesRepository employeesRepository, IUnitOfWork unitOfWork, IValidator<CreateEmployeeDto> createEmployeeValidator, IAuthRepository authRepository, ICurrentTenantService tenantService)
+		private readonly UserManager<ApplicationUser> _userManager;
+
+		public EmployeesService(IEmployeesRepository employeesRepository, IUnitOfWork unitOfWork, 
+			IValidator<CreateEmployeeDto> createEmployeeValidator, IAuthRepository authRepository,
+			ICurrentTenantService tenantService, IValidator<UpdateEmployeeDto> updateEmployeeValidator,
+			UserManager<ApplicationUser> userManager)
 		{
 			_employeesRepository = employeesRepository;
 			_unitOfWork = unitOfWork;
 			_createEmployeeValidator = createEmployeeValidator;
 			_authRepository = authRepository;
 			_tenantService = tenantService;
+			_updateEmployeeValidator = updateEmployeeValidator;
+			_userManager = userManager;
 		}
 
 		public async Task<EmployeeDto> CreateEmployeeAsync(CreateEmployeeDto request, CancellationToken cancellationToken)
@@ -103,6 +113,107 @@ namespace RestflowAPI.Services.Employees
 		public async Task<List<EmployeeDto>> GetStaffListAsync(CancellationToken cancellationToken)
 		{
 			return await _employeesRepository.GetStaffListAsync(cancellationToken);
+		}
+
+		public async Task<EmployeeDto> UpdateEmployeeAsync(Guid id, UpdateEmployeeDto request, CancellationToken cancellationToken)
+		{
+			// 1. Fluent Validation
+			var validationResult = await _updateEmployeeValidator.ValidateAsync(request, cancellationToken);
+			if (!validationResult.IsValid)
+			{
+				throw new AppValidationException(validationResult.Errors.Select(e => e.ErrorMessage));
+			}
+
+			// 2. Fetch user within the owner's active tenant scope (standard query filter is fine)
+			var tenantId = _tenantService.TenantId;
+			var user = await _userManager.Users
+				.FirstOrDefaultAsync(u => u.Id == id && u.TenantId == tenantId, cancellationToken);
+
+			if (user == null)
+			{
+				throw new NotFoundException("Employee not found.");
+			}
+
+			// 3. Unique Email Check (if changed)
+			if (request.Email != null && !string.Equals(user.Email, request.Email, StringComparison.OrdinalIgnoreCase))
+			{
+				var existingEmail = await _authRepository.FindByEmailAsync(request.Email, cancellationToken);
+				if (existingEmail != null)
+				{
+					throw new ConflictException("Email is already in use.");
+				}
+				user.Email = request.Email;
+				user.UserName = request.Email;
+				user.NormalizedEmail = request.Email.ToUpper();
+				user.NormalizedUserName = request.Email.ToUpper();
+			}
+			// 4. Unique Phone Check (if changed)
+			if (request.PhoneNumber != null && user.PhoneNumber != request.PhoneNumber)
+			{
+				var existingPhone = await _authRepository.FindByPhoneAsync(request.PhoneNumber, cancellationToken);
+				if (existingPhone != null)
+				{
+					throw new ConflictException("Phone number is already in use.");
+				}
+				user.PhoneNumber = request.PhoneNumber;
+			}
+			// 5. Update other fields
+			if (request.FullName != null)
+			{
+				user.FullName = request.FullName;
+			}
+
+			if (request.Status != null)
+			{
+				user.Status = request.Status.Value;
+			}
+			string currentRole = request.Role ?? string.Empty;
+			if (request.Role != null)
+			{
+				var currentRoles = await _userManager.GetRolesAsync(user);
+				if (!currentRoles.Contains(request.Role))
+				{
+					var removeResult = await _userManager.RemoveFromRolesAsync(user, currentRoles);
+					if (!removeResult.Succeeded)
+					{
+						throw new AppValidationException(removeResult.Errors.Select(e => e.Description));
+					}
+					var addResult = await _userManager.AddToRoleAsync(user, request.Role);
+					if (!addResult.Succeeded)
+					{
+						throw new AppValidationException(addResult.Errors.Select(e => e.Description));
+					}
+				}
+			}
+			else
+			{
+				var currentRoles = await _userManager.GetRolesAsync(user);
+				currentRole = currentRoles.FirstOrDefault() ?? string.Empty;
+			}
+
+			user.UpdatedAt = DateTime.UtcNow;
+
+			var updateResult = await _userManager.UpdateAsync(user);
+			if (!updateResult.Succeeded)
+			{
+				throw new AppValidationException(updateResult.Errors.Select(e => e.Description));
+			}
+
+			// 7. Commit changes
+			await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+			return new EmployeeDto
+			{
+				Id = user.Id,
+				FullName = user.FullName,
+				Email = user.Email ?? string.Empty,
+				PhoneNumber = user.PhoneNumber ?? string.Empty,
+				Role = currentRole,
+				Status = user.Status,
+				CreatedAt = user.CreatedAt,
+				UpdatedAt = user.UpdatedAt
+			};
+
 		}
 	}
 }
