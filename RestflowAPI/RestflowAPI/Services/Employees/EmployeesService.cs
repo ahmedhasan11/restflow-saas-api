@@ -61,14 +61,20 @@ namespace RestflowAPI.Services.Employees
 				throw new ConflictException("Phone number is already in use.");
 			}
 
-			// 4. Create User linked to Current Tenant
+
+			var tenantId = _tenantService.TenantId;
+			if (tenantId == null || tenantId == Guid.Empty)
+			{
+				throw new AppValidationException("Tenant context is required.");
+			}
+
 			var user = new ApplicationUser
 			{
 				FullName = request.FullName,
 				UserName = request.Email,
 				Email = request.Email,
 				PhoneNumber = request.PhoneNumber,
-				TenantId = _tenantService.TenantId,
+				TenantId = tenantId.Value,
 				Status = UserStatus.Active, // Default status: active
 				EmailConfirmed = true,
 				PhoneNumberConfirmed = true,
@@ -86,19 +92,31 @@ namespace RestflowAPI.Services.Employees
 			{
 				throw new AppValidationException(roleResult.Errors.Select(e => e.Description));
 			}
+			// 6. Create domain Employee entity record
+			var employee = new Employee
+			{
+				Id = Guid.NewGuid(),
+				UserId = user.Id,
+				TenantId = tenantId.Value,
+				FullName = request.FullName,
+				Email = request.Email,
+				PhoneNumber = request.PhoneNumber,
+				Role = request.Role,
+				Status = UserStatus.Active
+			};
+			await _employeesRepository.AddAsync(employee, cancellationToken);
 
-			// 6. Commit transaction
 			await _unitOfWork.SaveChangesAsync(cancellationToken);
 
 			return new EmployeeDto
 			{
-				Id = user.Id,
-				FullName = user.FullName,
-				Email = user.Email,
-				PhoneNumber = user.PhoneNumber ?? string.Empty,
-				Role = request.Role,
-				Status = user.Status,
-				CreatedAt = user.CreatedAt
+				Id = employee.Id, // Returning Employee.Id for business operational tracking
+				FullName = employee.FullName,
+				Email = employee.Email,
+				PhoneNumber = employee.PhoneNumber,
+				Role = employee.Role,
+				Status = employee.Status,
+				CreatedAt = employee.CreatedAt
 			};
 		}
 
@@ -112,9 +130,9 @@ namespace RestflowAPI.Services.Employees
 			return employee;
 		}
 
-		public async Task<List<EmployeeDto>> GetStaffListAsync(CancellationToken cancellationToken)
+		public async Task<List<EmployeeDto>> GetStaffListAsync(string? search, string? role, UserStatus? status, CancellationToken cancellationToken)
 		{
-			return await _employeesRepository.GetStaffListAsync(cancellationToken);
+			return await _employeesRepository.GetStaffListAsync(search, role, status, cancellationToken);
 		}
 
 		public async Task<EmployeeDto> UpdateEmployeeAsync(Guid id, UpdateEmployeeDto request, CancellationToken cancellationToken)
@@ -126,79 +144,96 @@ namespace RestflowAPI.Services.Employees
 				throw new AppValidationException(validationResult.Errors.Select(e => e.ErrorMessage));
 			}
 
-			// 2. Fetch user within the owner's active tenant scope (standard query filter is fine)
-			var tenantId = _tenantService.TenantId;
-			var user = await _userManager.Users
-				.FirstOrDefaultAsync(u => u.Id == id && u.TenantId == tenantId, cancellationToken);
+			// 2. Fetch Employee within the owner's active tenant scope
+			var employee = await _employeesRepository.GetEntityByIdAsync(id, cancellationToken);
 
-			if (user == null)
+			if (employee == null)
 			{
 				throw new NotFoundException("Employee not found.");
 			}
-
+			var user = employee.User;
 			// 3. Unique Email Check (if changed)
-			if (request.Email != null && !string.Equals(user.Email, request.Email, StringComparison.OrdinalIgnoreCase))
+			// 3. Unique Email Check (if changed)
+			if (request.Email != null && !string.Equals(employee.Email, request.Email, StringComparison.OrdinalIgnoreCase))
 			{
 				var existingEmail = await _authRepository.FindByEmailAsync(request.Email, cancellationToken);
 				if (existingEmail != null)
 				{
 					throw new ConflictException("Email is already in use.");
 				}
-				user.Email = request.Email;
-				user.UserName = request.Email;
-				user.NormalizedEmail = request.Email.ToUpper();
-				user.NormalizedUserName = request.Email.ToUpper();
+				employee.Email = request.Email;
+				if (user != null)
+				{
+					user.Email = request.Email;
+					user.UserName = request.Email;
+					user.NormalizedEmail = request.Email.ToUpper();
+					user.NormalizedUserName = request.Email.ToUpper();
+				}
 			}
 			// 4. Unique Phone Check (if changed)
-			if (request.PhoneNumber != null && user.PhoneNumber != request.PhoneNumber)
+			if (request.PhoneNumber != null && employee.PhoneNumber != request.PhoneNumber)
 			{
 				var existingPhone = await _authRepository.FindByPhoneAsync(request.PhoneNumber, cancellationToken);
 				if (existingPhone != null)
 				{
 					throw new ConflictException("Phone number is already in use.");
 				}
-				user.PhoneNumber = request.PhoneNumber;
+				employee.PhoneNumber = request.PhoneNumber;
+				if (user != null)
+				{
+					user.PhoneNumber = request.PhoneNumber;
+				}
 			}
 			// 5. Update other fields
 			if (request.FullName != null)
 			{
-				user.FullName = request.FullName;
+				employee.FullName = request.FullName;
+				if (user != null)
+				{
+					user.FullName = request.FullName;
+				}
 			}
 
 			if (request.Status != null)
 			{
-				user.Status = request.Status.Value;
+				employee.Status = request.Status.Value;
+				if (user != null)
+				{
+					user.Status = request.Status.Value;
+				}
 			}
-			string currentRole = request.Role ?? string.Empty;
+			// 6. Update Role (if changed)
 			if (request.Role != null)
 			{
-				var currentRoles = await _userManager.GetRolesAsync(user);
-				if (!currentRoles.Contains(request.Role))
+				employee.Role = request.Role;
+				if (user != null)
 				{
-					var removeResult = await _userManager.RemoveFromRolesAsync(user, currentRoles);
-					if (!removeResult.Succeeded)
+					var currentRoles = await _userManager.GetRolesAsync(user);
+					if (!currentRoles.Contains(request.Role))
 					{
-						throw new AppValidationException(removeResult.Errors.Select(e => e.Description));
-					}
-					var addResult = await _userManager.AddToRoleAsync(user, request.Role);
-					if (!addResult.Succeeded)
-					{
-						throw new AppValidationException(addResult.Errors.Select(e => e.Description));
+						var removeResult = await _userManager.RemoveFromRolesAsync(user, currentRoles);
+						if (!removeResult.Succeeded)
+						{
+							throw new AppValidationException(removeResult.Errors.Select(e => e.Description));
+						}
+						var addResult = await _userManager.AddToRoleAsync(user, request.Role);
+						if (!addResult.Succeeded)
+						{
+							throw new AppValidationException(addResult.Errors.Select(e => e.Description));
+						}
 					}
 				}
 			}
-			else
-			{
-				var currentRoles = await _userManager.GetRolesAsync(user);
-				currentRole = currentRoles.FirstOrDefault() ?? string.Empty;
-			}
 
-			user.UpdatedAt = DateTime.UtcNow;
-
-			var updateResult = await _userManager.UpdateAsync(user);
-			if (!updateResult.Succeeded)
+			employee.UpdatedAt = DateTime.UtcNow;
+			if (user != null)
 			{
-				throw new AppValidationException(updateResult.Errors.Select(e => e.Description));
+				user.UpdatedAt = DateTime.UtcNow;
+				var updateResult = await _userManager.UpdateAsync(user);
+				if (!updateResult.Succeeded)
+				{
+					throw new AppValidationException(updateResult.Errors.Select(e => e.Description));
+				}
 			}
 
 			// 7. Commit changes
@@ -206,14 +241,14 @@ namespace RestflowAPI.Services.Employees
 
 			return new EmployeeDto
 			{
-				Id = user.Id,
-				FullName = user.FullName,
-				Email = user.Email ?? string.Empty,
-				PhoneNumber = user.PhoneNumber ?? string.Empty,
-				Role = currentRole,
-				Status = user.Status,
-				CreatedAt = user.CreatedAt,
-				UpdatedAt = user.UpdatedAt
+				Id = employee.Id,
+				FullName = employee.FullName,
+				Email = employee.Email,
+				PhoneNumber = employee.PhoneNumber,
+				Role = employee.Role,
+				Status = employee.Status,
+				CreatedAt = employee.CreatedAt,
+				UpdatedAt = employee.UpdatedAt
 			};
 
 		}
@@ -226,43 +261,44 @@ namespace RestflowAPI.Services.Employees
 			{
 				throw new AppValidationException(validationResult.Errors.Select(e => e.ErrorMessage));
 			}
-			// 2. Fetch user within the active tenant scope (standard filter is fine)
-			var tenantId = _tenantService.TenantId;
-			var user = await _userManager.Users
-				.FirstOrDefaultAsync(u => u.Id == id && u.TenantId == tenantId, cancellationToken);
+			// 2. Fetch Employee within active tenant scope
+			var employee = await _employeesRepository.GetEntityByIdAsync(id, cancellationToken);
 
-			if (user == null)
+			if (employee == null)
 			{
 				throw new NotFoundException("Employee not found.");
 			}
 
-			// 3. Update status
-			user.Status = request.Status;
-			user.UpdatedAt = DateTime.UtcNow;
+			var user = employee.User;
 
-			var updateResult = await _userManager.UpdateAsync(user);
-			if (!updateResult.Succeeded)
+			// 3. Update status
+			employee.Status = request.Status;
+			employee.UpdatedAt = DateTime.UtcNow;
+
+			if (user != null)
 			{
-				throw new AppValidationException(updateResult.Errors.Select(e => e.Description));
+				user.Status = request.Status;
+				user.UpdatedAt = DateTime.UtcNow;
+				var updateResult = await _userManager.UpdateAsync(user);
+				if (!updateResult.Succeeded)
+				{
+					throw new AppValidationException(updateResult.Errors.Select(e => e.Description));
+				}
 			}
 
 			// 4. Commit changes
 			await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-			// 5. Get user roles
-			var roles = await _userManager.GetRolesAsync(user);
-			var role = roles.FirstOrDefault() ?? string.Empty;
-
 			return new EmployeeDto
 			{
-				Id = user.Id,
-				FullName = user.FullName,
-				Email = user.Email ?? string.Empty,
-				PhoneNumber = user.PhoneNumber ?? string.Empty,
-				Role = role,
-				Status = user.Status,
-				CreatedAt = user.CreatedAt,
-				UpdatedAt = user.UpdatedAt
+				Id = employee.Id,
+				FullName = employee.FullName,
+				Email = employee.Email,
+				PhoneNumber = employee.PhoneNumber,
+				Role = employee.Role,
+				Status = employee.Status,
+				CreatedAt = employee.CreatedAt,
+				UpdatedAt = employee.UpdatedAt
 			};
 		}
 	}

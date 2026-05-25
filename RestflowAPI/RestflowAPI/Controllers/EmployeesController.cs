@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using RestflowAPI.Constants;
 using RestflowAPI.DTOs.Employees;
+using RestflowAPI.Enums;
 using RestflowAPI.ServiceInterfaces.Employees;
 using RestflowAPI.Services.Employees;
 
@@ -21,9 +22,13 @@ namespace RestflowAPI.Controllers
 		}
 
 		[HttpGet]
-		public async Task<IActionResult> GetStaffList(CancellationToken cancellationToken)
+		public async Task<IActionResult> GetStaffList(
+			[FromQuery] string? search,
+			[FromQuery] string? role,
+			[FromQuery] UserStatus? status,
+			CancellationToken cancellationToken)
 		{
-			var staff = await _employeesService.GetStaffListAsync(cancellationToken);
+			var staff = await _employeesService.GetStaffListAsync(search, role, status, cancellationToken);
 			return Ok(staff);
 		}
 		[HttpPost]
@@ -38,14 +43,12 @@ namespace RestflowAPI.Controllers
 			var employee = await _employeesService.GetByIdAsync(id, cancellationToken);
 			return Ok(employee);
 		}
-
 		[HttpPatch("{id}")]
 		public async Task<IActionResult> UpdateEmployee([FromRoute] Guid id, [FromBody] UpdateEmployeeDto request, CancellationToken cancellationToken)
 		{
 			var employee = await _employeesService.UpdateEmployeeAsync(id, request, cancellationToken);
 			return Ok(employee);
 		}
-
 		[HttpPatch("{id}/status")]
 		public async Task<IActionResult> UpdateEmployeeStatus([FromRoute] Guid id, [FromBody] UpdateEmployeeStatusDto request, CancellationToken cancellationToken)
 		{

@@ -26,6 +26,7 @@ namespace RestflowAPI.Entities
 
 		// Navigation Properties
 		public Tenant? Tenant { get; set; }
+		public Employee? Employee { get; set; }
 		public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
 		public ICollection<OtpVerification> OtpVerifications { get; set; } = new List<OtpVerification>();
 	}

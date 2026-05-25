@@ -1,10 +1,11 @@
 ﻿using RestflowAPI.DTOs.Employees;
+using RestflowAPI.Enums;
 
 namespace RestflowAPI.ServiceInterfaces.Employees
 {
 	public interface IEmployeesService
 	{
-		Task<List<EmployeeDto>> GetStaffListAsync(CancellationToken cancellationToken);
+		Task<List<EmployeeDto>> GetStaffListAsync(string? search, string? role, UserStatus? status, CancellationToken cancellationToken);
 		Task<EmployeeDto> CreateEmployeeAsync(CreateEmployeeDto request, CancellationToken cancellationToken);
 
 		Task<EmployeeDto> GetByIdAsync(Guid id, CancellationToken cancellationToken);

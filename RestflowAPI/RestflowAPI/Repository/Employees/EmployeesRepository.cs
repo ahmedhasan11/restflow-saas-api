@@ -1,6 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using RestflowAPI.Data;
 using RestflowAPI.DTOs.Employees;
+using RestflowAPI.Entities;
+using RestflowAPI.Enums;
 using RestflowAPI.Repository.Interfaces.Employees;
 using RestflowAPI.ServiceInterfaces.Tenants;
 
@@ -9,65 +11,79 @@ namespace RestflowAPI.Repository.Employees
 	public class EmployeesRepository : IEmployeesRepository
 	{
 		private readonly ApplicationDbContext _db;
-		private readonly ICurrentTenantService _tenantService;
-		public EmployeesRepository(ApplicationDbContext db, ICurrentTenantService tenantService)
+
+		public EmployeesRepository(ApplicationDbContext db)
 		{
 			_db = db;
-			_tenantService = tenantService;
+		}
+
+		public async Task AddAsync(Employee employee, CancellationToken cancellationToken)
+		{
+			await _db.Employees.AddAsync(employee, cancellationToken);
 		}
 
 		public async Task<EmployeeDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
 		{
-			var tenantId = _tenantService.TenantId;
-			return await _db.Users.Where(u => u.Id == id && u.TenantId == tenantId)
-				.Select(u => new EmployeeDto
+			return await _db.Employees
+				.Where(e => e.Id == id)
+				.Select(e => new EmployeeDto
 				{
-					Id = u.Id,
-					FullName = u.FullName,
-					Email = u.Email ?? string.Empty,
-					PhoneNumber = u.PhoneNumber ?? string.Empty,
-					Status = u.Status,
-					CreatedAt = u.CreatedAt,
-					UpdatedAt = u.UpdatedAt,
-					Role = _db.UserRoles
-						.Where(ur => ur.UserId == u.Id)
-						.Join(
-							_db.Roles,
-							ur => ur.RoleId,
-							r => r.Id,
-							(ur, r) => r.Name
-						)
-						.FirstOrDefault() ?? string.Empty
+					Id = e.Id,
+					FullName = e.FullName,
+					Email = e.Email,
+					PhoneNumber = e.PhoneNumber,
+					Role = e.Role,
+					Status = e.Status,
+					CreatedAt = e.CreatedAt,
+					UpdatedAt = e.UpdatedAt
 				})
 				.FirstOrDefaultAsync(cancellationToken);
 		}
 
-		public async Task<List<EmployeeDto>> GetStaffListAsync(CancellationToken cancellationToken)
+		public async Task<Employee?> GetEntityByIdAsync(Guid employeeId, CancellationToken cancellationToken)
 		{
-			var tenantId = _tenantService.TenantId;
-			return await _db.Users.Where(u => u.TenantId == tenantId)
-				.Select(u => new EmployeeDto
+			return await _db.Employees
+				.Include(e => e.User)
+				.FirstOrDefaultAsync(e => e.Id == employeeId, cancellationToken);
+		}
+
+		public async Task<List<EmployeeDto>> GetStaffListAsync(string? search, string? role, UserStatus? status, CancellationToken cancellationToken)
+		{
+			var query = _db.Employees.AsQueryable();
+
+			if (status.HasValue)
+			{
+				query = query.Where(e => e.Status == status.Value);
+			}
+			if (!string.IsNullOrWhiteSpace(search))
+			{
+				var lowerSearch = search.ToLower();
+				query = query.Where(e =>
+					e.FullName.ToLower().Contains(lowerSearch) ||
+					e.Email.ToLower().Contains(lowerSearch) ||
+					e.PhoneNumber.Contains(lowerSearch));
+			}
+
+			if (!string.IsNullOrWhiteSpace(role))
+			{
+				query = query.Where(e => e.Role == role);
+			}
+
+			return await query
+				.Select(e => new EmployeeDto
 				{
-					Id = u.Id,
-					FullName = u.FullName,
-					Email = u.Email ?? string.Empty,
-					PhoneNumber = u.PhoneNumber ?? string.Empty,
-					Status = u.Status,
-					CreatedAt = u.CreatedAt,
-					UpdatedAt= u.UpdatedAt,
-					Role = _db.UserRoles
-						.Where(ur => ur.UserId == u.Id)
-						.Join(
-							_db.Roles,
-							ur => ur.RoleId,
-							r => r.Id,
-							(ur, r) => r.Name
-						)
-						.FirstOrDefault() ?? string.Empty
+					Id = e.Id,
+					FullName = e.FullName,
+					Email = e.Email,
+					PhoneNumber = e.PhoneNumber,
+					Role = e.Role,
+					Status = e.Status,
+					CreatedAt = e.CreatedAt,
+					UpdatedAt = e.UpdatedAt
 				})
 				.OrderBy(e => e.CreatedAt)
 				.ToListAsync(cancellationToken);
+
 		}
 	}
-	
 }
