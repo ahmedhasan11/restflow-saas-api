@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using RestflowAPI.Constants;
 using RestflowAPI.Entities;
 using RestflowAPI.Enums;
 
@@ -8,7 +9,15 @@ namespace RestflowAPI.Data
 	{
 		public static async Task SeedRolesAsync(RoleManager<ApplicationRole> roleManager)
 		{
-			string[] roles = { "SuperAdmin", "Owner", "Employee" };
+			string[] roles = {
+				Permissions.Roles.SuperAdmin,
+				Permissions.Roles.Owner,
+				Permissions.Roles.Employee,
+				Permissions.Roles.Cashier,
+				Permissions.Roles.Manager,
+				Permissions.Roles.KitchenStaff,
+				Permissions.Roles.InventoryClerk
+			};
 
 			foreach (var roleName in roles)
 			{

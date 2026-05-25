@@ -26,8 +26,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<ProductIngredient> ProductIngredients => Set<ProductIngredient>();
     public DbSet<PlatformSetting> PlatformSettings => Set<PlatformSetting>();
 
+	public DbSet<Employee> Employees => Set<Employee>();
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
+
+	protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
@@ -42,6 +44,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
 		modelBuilder.Entity<ProductIngredient>().HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantService.TenantId);
 		modelBuilder.Entity<StockMovement>().HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantService.TenantId);
 		modelBuilder.Entity<ApplicationUser>().HasQueryFilter(e => e.DeletedAt == null && (e.TenantId == _tenantService.TenantId || e.TenantId == null));
+		modelBuilder.Entity<Employee>().HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantService.TenantId);
 	}
 	public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
 	{

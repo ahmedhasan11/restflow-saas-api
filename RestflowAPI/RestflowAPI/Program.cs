@@ -28,6 +28,10 @@ using RestflowAPI.Repository.Interfaces.Settings;
 using RestflowAPI.Repository.Settings;
 using RestflowAPI.ServiceInterfaces.Settings;
 using RestflowAPI.Services.Settings;
+using RestflowAPI.ServiceInterfaces.Employees;
+using RestflowAPI.Services.Employees;
+using RestflowAPI.Repository.Interfaces.Employees;
+using RestflowAPI.Repository.Employees;
 
 namespace RestflowAPI
 {
@@ -79,6 +83,9 @@ namespace RestflowAPI
 
 			builder.Services.AddScoped<IFileService, FileService>();
 			builder.Services.AddScoped<IPlatformRepository, PlatformRepository>();
+
+			builder.Services.AddScoped<IEmployeesService, EmployeesService>();
+			builder.Services.AddScoped<IEmployeesRepository, EmployeesRepository>();
 			#endregion
 
 			#region Fluent Validation Configuration
@@ -157,7 +164,13 @@ namespace RestflowAPI
 					policy => policy.RequireRole(RestflowAPI.Constants.Permissions.Roles.Employee));
 
 				options.AddPolicy(RestflowAPI.Constants.Permissions.Policies.TenantAccess,
-					policy => policy.RequireRole(RestflowAPI.Constants.Permissions.Roles.Owner, RestflowAPI.Constants.Permissions.Roles.Employee));
+					policy => policy.RequireRole(
+						RestflowAPI.Constants.Permissions.Roles.Owner,
+						RestflowAPI.Constants.Permissions.Roles.Employee,
+						RestflowAPI.Constants.Permissions.Roles.Cashier,
+						RestflowAPI.Constants.Permissions.Roles.Manager,
+						RestflowAPI.Constants.Permissions.Roles.KitchenStaff,
+						RestflowAPI.Constants.Permissions.Roles.InventoryClerk));
 			});
 			#endregion
 
