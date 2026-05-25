@@ -10,5 +10,7 @@ namespace RestflowAPI.ServiceInterfaces.Employees
 		Task<EmployeeDto> GetByIdAsync(Guid id, CancellationToken cancellationToken);
 
 		Task<EmployeeDto> UpdateEmployeeAsync(Guid id, UpdateEmployeeDto request, CancellationToken cancellationToken);
+
+		Task<EmployeeDto> UpdateStatusAsync(Guid id, UpdateEmployeeStatusDto request, CancellationToken cancellationToken);
 	}
 }

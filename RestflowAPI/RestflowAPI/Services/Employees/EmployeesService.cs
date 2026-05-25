@@ -20,6 +20,7 @@ namespace RestflowAPI.Services.Employees
 		private readonly IUnitOfWork _unitOfWork;
 		private readonly IValidator<CreateEmployeeDto> _createEmployeeValidator;
 		private	readonly IValidator<UpdateEmployeeDto> _updateEmployeeValidator;
+		private readonly IValidator<UpdateEmployeeStatusDto> _statusValidator;
 		private readonly IAuthRepository _authRepository;
 		private readonly ICurrentTenantService _tenantService;
 		private readonly UserManager<ApplicationUser> _userManager;
@@ -27,7 +28,7 @@ namespace RestflowAPI.Services.Employees
 		public EmployeesService(IEmployeesRepository employeesRepository, IUnitOfWork unitOfWork, 
 			IValidator<CreateEmployeeDto> createEmployeeValidator, IAuthRepository authRepository,
 			ICurrentTenantService tenantService, IValidator<UpdateEmployeeDto> updateEmployeeValidator,
-			UserManager<ApplicationUser> userManager)
+			UserManager<ApplicationUser> userManager, IValidator<UpdateEmployeeStatusDto> statusValidator)
 		{
 			_employeesRepository = employeesRepository;
 			_unitOfWork = unitOfWork;
@@ -36,6 +37,7 @@ namespace RestflowAPI.Services.Employees
 			_tenantService = tenantService;
 			_updateEmployeeValidator = updateEmployeeValidator;
 			_userManager = userManager;
+			_statusValidator = statusValidator;
 		}
 
 		public async Task<EmployeeDto> CreateEmployeeAsync(CreateEmployeeDto request, CancellationToken cancellationToken)
@@ -214,6 +216,54 @@ namespace RestflowAPI.Services.Employees
 				UpdatedAt = user.UpdatedAt
 			};
 
+		}
+
+		public async Task<EmployeeDto> UpdateStatusAsync(Guid id, UpdateEmployeeStatusDto request, CancellationToken cancellationToken)
+		{
+			// 1. Fluent Validation
+			var validationResult = await _statusValidator.ValidateAsync(request, cancellationToken);
+			if (!validationResult.IsValid)
+			{
+				throw new AppValidationException(validationResult.Errors.Select(e => e.ErrorMessage));
+			}
+			// 2. Fetch user within the active tenant scope (standard filter is fine)
+			var tenantId = _tenantService.TenantId;
+			var user = await _userManager.Users
+				.FirstOrDefaultAsync(u => u.Id == id && u.TenantId == tenantId, cancellationToken);
+
+			if (user == null)
+			{
+				throw new NotFoundException("Employee not found.");
+			}
+
+			// 3. Update status
+			user.Status = request.Status;
+			user.UpdatedAt = DateTime.UtcNow;
+
+			var updateResult = await _userManager.UpdateAsync(user);
+			if (!updateResult.Succeeded)
+			{
+				throw new AppValidationException(updateResult.Errors.Select(e => e.Description));
+			}
+
+			// 4. Commit changes
+			await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+			// 5. Get user roles
+			var roles = await _userManager.GetRolesAsync(user);
+			var role = roles.FirstOrDefault() ?? string.Empty;
+
+			return new EmployeeDto
+			{
+				Id = user.Id,
+				FullName = user.FullName,
+				Email = user.Email ?? string.Empty,
+				PhoneNumber = user.PhoneNumber ?? string.Empty,
+				Role = role,
+				Status = user.Status,
+				CreatedAt = user.CreatedAt,
+				UpdatedAt = user.UpdatedAt
+			};
 		}
 	}
 }

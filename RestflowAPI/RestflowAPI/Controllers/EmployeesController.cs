@@ -45,5 +45,12 @@ namespace RestflowAPI.Controllers
 			var employee = await _employeesService.UpdateEmployeeAsync(id, request, cancellationToken);
 			return Ok(employee);
 		}
+
+		[HttpPatch("{id}/status")]
+		public async Task<IActionResult> UpdateEmployeeStatus([FromRoute] Guid id, [FromBody] UpdateEmployeeStatusDto request, CancellationToken cancellationToken)
+		{
+			var employee = await _employeesService.UpdateStatusAsync(id, request, cancellationToken);
+			return Ok(employee);
+		}
 	}
 }
