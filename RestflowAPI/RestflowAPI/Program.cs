@@ -46,6 +46,10 @@ using RestflowAPI.ServiceInterfaces.Employees;
 using RestflowAPI.Services.Employees;
 using RestflowAPI.Repository.Interfaces.Employees;
 using RestflowAPI.Repository.Employees;
+using RestflowAPI.ServiceInterfaces.Reports;
+using RestflowAPI.Services.Reports;
+using RestflowAPI.Repository.Interfaces.Reports;
+using RestflowAPI.Repository.Reports;
 
 
 namespace RestflowAPI
@@ -118,12 +122,15 @@ namespace RestflowAPI
 
             builder.Services.AddSingleton<ILogger>(sp =>
     sp.GetRequiredService<ILogger<OrdersService>>());
-            #endregion
 
-            #region Fluent Validation Configuration
-            //Add Fluent Validations
-            //builder.Services.AddFluentValidationAutoValidation();
-            builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+			builder.Services.AddScoped<IReportsService, ReportsService>();
+			builder.Services.AddScoped<IReportsRepository, ReportsRepository>();
+			#endregion
+
+			#region Fluent Validation Configuration
+			//Add Fluent Validations
+			//builder.Services.AddFluentValidationAutoValidation();
+			builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 			#endregion
 			#region DbContext Configuration with Identity
 
