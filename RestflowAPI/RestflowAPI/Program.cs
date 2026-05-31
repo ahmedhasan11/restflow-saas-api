@@ -28,6 +28,7 @@ using RestflowAPI.Repository.Interfaces.Settings;
 using RestflowAPI.Repository.Settings;
 using RestflowAPI.ServiceInterfaces.Settings;
 using RestflowAPI.Services.Settings;
+<<<<<<< HEAD
 using RestflowAPI.Repository.Interfaces.InventoryItem;
 using RestflowAPI.Repository.InventoryItem;
 using RestflowAPI.ServiceInterfaces.InventoryCategory;
@@ -42,6 +43,12 @@ using RestflowAPI.Repository.Interfaces.Orders;
 using RestflowAPI.Repository.Orders;
 using RestflowAPI.ServiceInterfaces.Orders;
 using RestflowAPI.Services.Orders;
+=======
+using RestflowAPI.ServiceInterfaces.Employees;
+using RestflowAPI.Services.Employees;
+using RestflowAPI.Repository.Interfaces.Employees;
+using RestflowAPI.Repository.Employees;
+>>>>>>> origin/main
 
 namespace RestflowAPI
 {
@@ -93,6 +100,13 @@ namespace RestflowAPI
 
 			builder.Services.AddScoped<IFileService, FileService>();
 			builder.Services.AddScoped<IPlatformRepository, PlatformRepository>();
+<<<<<<< HEAD
+=======
+
+			builder.Services.AddScoped<IEmployeesService, EmployeesService>();
+			builder.Services.AddScoped<IEmployeesRepository, EmployeesRepository>();
+			#endregion
+>>>>>>> origin/main
 
 
             builder.Services.AddScoped<IInventoryCategoryRepository, InventoryCategoryRepository>();
@@ -190,7 +204,13 @@ namespace RestflowAPI
 					policy => policy.RequireRole(RestflowAPI.Constants.Permissions.Roles.Employee));
 
 				options.AddPolicy(RestflowAPI.Constants.Permissions.Policies.TenantAccess,
-					policy => policy.RequireRole(RestflowAPI.Constants.Permissions.Roles.Owner, RestflowAPI.Constants.Permissions.Roles.Employee));
+					policy => policy.RequireRole(
+						RestflowAPI.Constants.Permissions.Roles.Owner,
+						RestflowAPI.Constants.Permissions.Roles.Employee,
+						RestflowAPI.Constants.Permissions.Roles.Cashier,
+						RestflowAPI.Constants.Permissions.Roles.Manager,
+						RestflowAPI.Constants.Permissions.Roles.KitchenStaff,
+						RestflowAPI.Constants.Permissions.Roles.InventoryClerk));
 			});
 			#endregion
 

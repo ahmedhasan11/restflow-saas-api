@@ -11,6 +11,7 @@ using System.Security.Cryptography;
 using System.Text;
 using RestflowAPI.Repository.Interfaces.Auth;
 using RestflowAPI.Repository.Interfaces.Tenants;
+using RestflowAPI.Repository.Interfaces.Employees;
 
 namespace RestflowAPI.Services.Auth
 {
@@ -35,6 +36,7 @@ namespace RestflowAPI.Services.Auth
 		private readonly IValidator<ChangePasswordDto> _changePasswordValidator;
 		private readonly ILogger<AuthService> _logger;
 		private readonly IUnitOfWork _unitOfWork;
+		private readonly IEmployeesRepository _employeesRepository;
 
 		public AuthService(IAuthRepository authRepository, ILogger<AuthService> logger, 
 			IValidator<RegisterRequestDto> registerValidator, IUnitOfWork unitOfWork,
@@ -45,7 +47,7 @@ namespace RestflowAPI.Services.Auth
 			, IValidator<ResetPasswordRequestDto> resetPasswordValidator, IValidator<LogoutRequestDto> logoutRequestValidator
 			, IValidator<CreateUserByAdminDto> createUserByAdminValidator, ITenantRepository tenantRepository
 			, IValidator<ChangePasswordDto> changePasswordValidator, IEmailService emailService
-			, ISmsService smsService)
+			, ISmsService smsService, IEmployeesRepository employeesRepository)
 		{
 			_authRepository = authRepository;
 			_logger = logger;
@@ -66,6 +68,7 @@ namespace RestflowAPI.Services.Auth
 			_changePasswordValidator = changePasswordValidator;
 			_emailService = emailService;
 			_smsService = smsService;
+			_employeesRepository = employeesRepository;
 		}
 		public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request, CancellationToken cancellationToken)
 		{
@@ -547,6 +550,24 @@ namespace RestflowAPI.Services.Auth
 				throw new Exceptions.AppValidationException(createResult.Errors.Select(e => e.Description));
 			}
 			await _authRepository.AddToRoleAsync(user, request.Role.ToString());
+
+			// Sync creation of domain Employee entity for tenant-associated users (Owner, Employee)
+			if (request.Role == UserRole.Owner || request.Role == UserRole.Employee)
+			{
+				var employee = new RestflowAPI.Entities.Employee
+				{
+					Id = Guid.NewGuid(),
+					UserId = user.Id,
+					TenantId = request.TenantId,
+					FullName = request.FullName,
+					Email = request.Email,
+					PhoneNumber = request.PhoneNumber,
+					Role = request.Role.ToString(),
+					Status = UserStatus.Active
+				};
+				await _employeesRepository.AddAsync(employee, cancellationToken);
+			}
+
 			await _unitOfWork.SaveChangesAsync(cancellationToken);
 			return AuthResponseDto.Success("User created successfully by admin.");
 		}
