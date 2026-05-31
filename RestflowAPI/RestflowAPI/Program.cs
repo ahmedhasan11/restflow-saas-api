@@ -88,7 +88,6 @@ namespace RestflowAPI
 			builder.Services.AddScoped<IProductIngredientRepository, ProductIngredientRepository>();
 			builder.Services.AddScoped<IProductRepository, ProductRepository>();
 			builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
-			builder.Services.AddScoped<IInventoryCategoryRepository, InventoryCategoryRepository>();
 
 			builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 			builder.Services.AddScoped<ICustomerService, CustomerService>();

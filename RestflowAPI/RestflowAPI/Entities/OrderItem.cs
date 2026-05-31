@@ -1,6 +1,8 @@
-﻿namespace RestflowAPI.Entities
+﻿using RestflowAPI.ServiceInterfaces.Tenants;
+
+namespace RestflowAPI.Entities
 {
-    public class OrderItem : BaseEntity
+    public class OrderItem : BaseEntity, IMustHaveTenant
     {
         public Guid Id { get; set; }
 
