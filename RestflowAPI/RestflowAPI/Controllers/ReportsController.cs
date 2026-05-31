@@ -73,5 +73,20 @@ namespace RestflowAPI.Controllers
 			var performance = await _reportsService.GetMenuPerformanceAsync(from.Value, to.Value, sort, cancellationToken);
 			return Ok(performance);
 		}
+
+		[HttpGet("operational-volume")]
+		public async Task<IActionResult> GetOperationalVolume([FromQuery] DateTime? from,[FromQuery] DateTime? to,CancellationToken cancellationToken = default)
+		{
+			if (!from.HasValue || !to.HasValue)
+			{
+				return BadRequest(new { message = "Both 'from' and 'to' query parameters are required." });
+			}
+			if (from.Value > to.Value)
+			{
+				return BadRequest(new { message = "The 'from' date must be less than or equal to the 'to' date." });
+			}
+			var volume = await _reportsService.GetOperationalVolumeAsync(from.Value, to.Value, cancellationToken);
+			return Ok(volume);
+		}
 	}
 }

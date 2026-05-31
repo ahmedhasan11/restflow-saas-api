@@ -1,4 +1,5 @@
 ﻿using RestflowAPI.DTOs.Reports;
+using RestflowAPI.Enums;
 using RestflowAPI.Repository.Interfaces.Reports;
 using RestflowAPI.ServiceInterfaces.Reports;
 
@@ -163,6 +164,50 @@ namespace RestflowAPI.Services.Reports
 			{
 				return resultList.OrderByDescending(p => p.QuantitySold).ThenBy(p => p.ProductName).ToList();
 			}
+		}
+
+		public async Task<OperationalVolumeDto> GetOperationalVolumeAsync(DateTime fromDate, DateTime toDate, CancellationToken cancellationToken)
+		{
+			var start = fromDate.Date;
+			var end = toDate.Date.AddDays(1);
+			var orders = await _reportsRepository.GetOrdersInRangeAsync(start, end, cancellationToken);
+
+			var statusDistribution = new StatusDistributionDto
+			{
+				Pending = orders.Count(o => o.OrderStatus == OrderStatus.Pending),
+				Completed = orders.Count(o => o.OrderStatus == OrderStatus.Completed),
+				Cancelled = orders.Count(o => o.OrderStatus == OrderStatus.Cancelled)
+			};
+
+			var completedOrders = orders.Where(o => o.OrderStatus == OrderStatus.Completed).ToList();
+			var totalCompletedRevenue = completedOrders.Sum(o => o.TotalAmount ?? 0);
+
+			var orderTypes = new[] { OrderType.DineIn, OrderType.Takeaway, OrderType.Delivery };
+			var orderTypeMetrics = new List<OrderTypeMetricDto>();
+
+			foreach (var type in orderTypes)
+			{
+				var typeOrders = completedOrders.Where(o => o.OrderType == type).ToList();
+				var typeRevenue = typeOrders.Sum(o => o.TotalAmount ?? 0);
+				var typeCount = typeOrders.Count;
+				decimal percentage = 0;
+				if (totalCompletedRevenue > 0)
+				{
+					percentage = Math.Round((typeRevenue / totalCompletedRevenue) * 100, 2);
+				}
+				orderTypeMetrics.Add(new OrderTypeMetricDto
+				{
+					OrderType = type.ToString(),
+					Count = typeCount,
+					Revenue = typeRevenue,
+					Percentage = percentage
+				});
+			}
+			return new OperationalVolumeDto
+			{
+				StatusDistribution = statusDistribution,
+				OrderTypeMetrics = orderTypeMetrics
+			};
 		}
 	}
 }

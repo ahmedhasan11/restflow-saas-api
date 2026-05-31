@@ -9,5 +9,7 @@ namespace RestflowAPI.ServiceInterfaces.Reports
 		Task<List<ChartDataPointDto>> GetRevenueChartAsync(string period, CancellationToken cancellationToken);
 
 		Task<List<MenuPerformanceDto>> GetMenuPerformanceAsync(DateTime fromDate, DateTime toDate, string sort, CancellationToken cancellationToken);
+
+		Task<OperationalVolumeDto> GetOperationalVolumeAsync(DateTime fromDate, DateTime toDate, CancellationToken cancellationToken);
 	}
 }

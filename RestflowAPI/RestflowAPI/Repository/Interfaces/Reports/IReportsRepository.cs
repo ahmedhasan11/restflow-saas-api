@@ -9,5 +9,6 @@ namespace RestflowAPI.Repository.Interfaces.Reports
 		Task<List<Order>> GetCompletedOrdersInRangeAsync(DateTime fromDate, DateTime toDate, CancellationToken cancellationToken);
 		Task<List<Product>> GetAllActiveProductsAsync(CancellationToken cancellationToken);
 		Task<List<MenuPerformanceDto>> GetProductSalesVolumeAsync(DateTime fromDate, DateTime toDate, CancellationToken cancellationToken);
+		Task<List<Order>> GetOrdersInRangeAsync(DateTime fromDate, DateTime toDate, CancellationToken cancellationToken);
 	}
 }

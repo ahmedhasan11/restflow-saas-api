@@ -58,5 +58,12 @@ namespace RestflowAPI.Repository.Reports
 				.SumAsync(o => o.TotalAmount ?? 0, cancellationToken);
 			return sum;
 		}
+
+		public async Task<List<Order>> GetOrdersInRangeAsync(DateTime fromDate, DateTime toDate, CancellationToken cancellationToken)
+		{
+			return await _db.Orders
+				.Where(o => o.CreatedAt >= fromDate && o.CreatedAt < toDate)
+				.ToListAsync(cancellationToken);
+		}
 	}
 }
