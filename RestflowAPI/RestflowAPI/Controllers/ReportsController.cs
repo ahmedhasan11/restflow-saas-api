@@ -52,5 +52,26 @@ namespace RestflowAPI.Controllers
 				return BadRequest(new { message = ex.Message });
 			}
 		}
+
+		[HttpGet("menu-performance")]
+		public async Task<IActionResult> GetMenuPerformance([FromQuery] DateTime? from,	[FromQuery] DateTime? to, [FromQuery] string sort = "desc",
+															CancellationToken cancellationToken = default)
+		{
+			if (!from.HasValue || !to.HasValue)
+			{
+				return BadRequest(new { message = "Both 'from' and 'to' query parameters are required." });
+			}
+			if (from.Value > to.Value)
+			{
+				return BadRequest(new { message = "The 'from' date must be less than or equal to the 'to' date." });
+			}
+			var allowedSorts = new[] { "asc", "desc" };
+			if (string.IsNullOrWhiteSpace(sort) || !allowedSorts.Contains(sort.ToLower()))
+			{
+				return BadRequest(new { message = "Invalid sort parameter. Supported values are 'asc' or 'desc'." });
+			}
+			var performance = await _reportsService.GetMenuPerformanceAsync(from.Value, to.Value, sort, cancellationToken);
+			return Ok(performance);
+		}
 	}
 }

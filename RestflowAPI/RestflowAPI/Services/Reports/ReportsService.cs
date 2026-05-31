@@ -32,7 +32,7 @@ namespace RestflowAPI.Services.Reports
 			else
 			{
 				var growthPercentage = ((currentRevenue - previousRevenue) / previousRevenue) * 100;
-				growthString = growthPercentage >= 0? $"+{growthPercentage:F1}%" : $"{growthPercentage:F1}%";
+				growthString = growthPercentage >= 0 ? $"+{growthPercentage:F1}%" : $"{growthPercentage:F1}%";
 			}
 
 			return new FinancialSummaryDto
@@ -113,6 +113,56 @@ namespace RestflowAPI.Services.Reports
 				}
 			}
 			return buckets;
+		}
+
+
+		public async Task<List<MenuPerformanceDto>> GetMenuPerformanceAsync(DateTime fromDate, DateTime toDate, string sort, CancellationToken cancellationToken)
+		{
+			var currentStart = fromDate.Date;
+			var currentEnd = toDate.Date.AddDays(1);
+
+			var activeProducts = await _reportsRepository.GetAllActiveProductsAsync(cancellationToken);
+
+			var salesVolume = await _reportsRepository.GetProductSalesVolumeAsync(currentStart, currentEnd, cancellationToken);
+
+			var performanceMap = activeProducts.ToDictionary(
+				p => p.Id,
+				p => new MenuPerformanceDto
+				{
+					ProductId = p.Id,
+					ProductName = p.ProductName,
+					QuantitySold = 0
+				}
+			);
+
+			foreach (var sale in salesVolume)
+			{
+				if (performanceMap.TryGetValue(sale.ProductId, out var dto))
+				{
+					dto.QuantitySold = sale.QuantitySold;
+				}
+				else
+				{
+					// Historical product that is currently hidden/deleted but has sales in the period
+					performanceMap[sale.ProductId] = new MenuPerformanceDto
+					{
+						ProductId = sale.ProductId,
+						ProductName = sale.ProductName,
+						QuantitySold = sale.QuantitySold
+					};
+				}
+			}
+			var resultList = performanceMap.Values.ToList();
+
+			// 4. Sort based on parameter
+			if (sort.ToLower() == "asc")
+			{
+				return resultList.OrderBy(p => p.QuantitySold).ThenBy(p => p.ProductName).ToList();
+			}
+			else
+			{
+				return resultList.OrderByDescending(p => p.QuantitySold).ThenBy(p => p.ProductName).ToList();
+			}
 		}
 	}
 }
