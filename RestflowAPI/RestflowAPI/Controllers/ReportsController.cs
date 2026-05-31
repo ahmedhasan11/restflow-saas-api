@@ -33,5 +33,24 @@ namespace RestflowAPI.Controllers
 			var summary = await _reportsService.GetFinancialSummaryAsync(from.Value, to.Value, cancellationToken);
 			return Ok(summary);
 		}
+
+		[HttpGet("revenue-chart")]
+		public async Task<IActionResult> GetRevenueChart([FromQuery] string period = "week", CancellationToken cancellationToken = default)
+		{
+			var supportedPeriods = new[] { "week", "month", "year" };
+			if (string.IsNullOrWhiteSpace(period) || !supportedPeriods.Contains(period.ToLower()))
+			{
+				return BadRequest(new { message = "Invalid period. Supported values are 'week', 'month', or 'year'." });
+			}
+			try
+			{
+				var chartData = await _reportsService.GetRevenueChartAsync(period, cancellationToken);
+				return Ok(chartData);
+			}
+			catch (ArgumentException ex)
+			{
+				return BadRequest(new { message = ex.Message });
+			}
+		}
 	}
 }

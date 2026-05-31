@@ -41,5 +41,78 @@ namespace RestflowAPI.Services.Reports
 				RevenueGrowth = growthString
 			};
 		}
+
+		public async Task<List<ChartDataPointDto>> GetRevenueChartAsync(string period, CancellationToken cancellationToken)
+		{
+			DateTime fromDate;
+			DateTime toDate = DateTime.UtcNow.Date.AddDays(1); // Exclude tomorrow
+			List<ChartDataPointDto> buckets;
+
+			switch (period.ToLower())
+			{
+				case "week":
+					fromDate = DateTime.UtcNow.Date.AddDays(-6); // Last 7 days
+					buckets = Enumerable.Range(0, 7)
+						.Select(i => fromDate.AddDays(i))
+						.Select(d => new ChartDataPointDto { Label = d.ToString("yyyy-MM-dd"), Amount = 0 })
+						.ToList();
+					break;
+				case "month":
+					fromDate = DateTime.UtcNow.Date.AddDays(-29); // Last 30 days
+					buckets = Enumerable.Range(0, 30)
+						.Select(i => fromDate.AddDays(i))
+						.Select(d => new ChartDataPointDto { Label = d.ToString("yyyy-MM-dd"), Amount = 0 })
+						.ToList();
+					break;
+				case "year":
+					// Start of the month 11 months ago
+					fromDate = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1).AddMonths(-11);
+					buckets = Enumerable.Range(0, 12)
+						.Select(i => fromDate.AddMonths(i))
+						.Select(m => new ChartDataPointDto { Label = m.ToString("MMMM yyyy"), Amount = 0 })
+						.ToList();
+					break;
+				default:
+					throw new ArgumentException("Invalid period. Supported periods are 'week', 'month', or 'year'.");
+			}
+
+			var orders = await _reportsRepository.GetCompletedOrdersInRangeAsync(fromDate, toDate, cancellationToken);
+
+			// Group and populate in-memory
+			if (period.ToLower() == "year")
+			{
+				var grouped = orders
+					.GroupBy(o => new { o.CreatedAt.Year, o.CreatedAt.Month })
+					.ToDictionary(
+						g => new DateTime(g.Key.Year, g.Key.Month, 1).ToString("MMMM yyyy"),
+						g => g.Sum(o => o.TotalAmount ?? 0)
+					);
+				foreach (var bucket in buckets)
+				{
+					if (grouped.TryGetValue(bucket.Label, out var sum))
+					{
+						bucket.Amount = sum;
+					}
+				}
+			}
+			else
+			{
+				// Daily grouping for week/month
+				var grouped = orders
+					.GroupBy(o => o.CreatedAt.Date)
+					.ToDictionary(
+						g => g.Key.ToString("yyyy-MM-dd"),
+						g => g.Sum(o => o.TotalAmount ?? 0)
+					);
+				foreach (var bucket in buckets)
+				{
+					if (grouped.TryGetValue(bucket.Label, out var sum))
+					{
+						bucket.Amount = sum;
+					}
+				}
+			}
+			return buckets;
+		}
 	}
 }
