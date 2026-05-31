@@ -23,4 +23,10 @@ public interface IProductIngredientRepository
     Guid productId,
     Guid tenantId,
     CancellationToken cancellationToken);
+
+    Task<List<ProductIngredient>>
+GetIngredientsByProductIdsAsync(
+    List<Guid> productIds,
+    Guid tenantId,
+    CancellationToken cancellationToken);
 }

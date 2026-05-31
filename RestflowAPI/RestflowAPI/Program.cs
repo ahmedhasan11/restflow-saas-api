@@ -28,6 +28,20 @@ using RestflowAPI.Repository.Interfaces.Settings;
 using RestflowAPI.Repository.Settings;
 using RestflowAPI.ServiceInterfaces.Settings;
 using RestflowAPI.Services.Settings;
+using RestflowAPI.Repository.Interfaces.InventoryItem;
+using RestflowAPI.Repository.InventoryItem;
+using RestflowAPI.ServiceInterfaces.InventoryCategory;
+using RestflowAPI.ServiceInterfaces.InventoryItems;
+using RestflowAPI.Services.InventoryItems;
+using RestflowAPI.Services;
+using RestflowAPI.Repository.Interfaces.StockTransaction;
+using RestflowAPI.ServiceInterfaces.StockTransaction;
+using RestflowAPI.Services.StockTransaction;
+using RestflowAPI.Repository.StockTransaction;
+using RestflowAPI.Repository.Interfaces.Orders;
+using RestflowAPI.Repository.Orders;
+using RestflowAPI.ServiceInterfaces.Orders;
+using RestflowAPI.Services.Orders;
 
 namespace RestflowAPI
 {
@@ -69,7 +83,7 @@ namespace RestflowAPI
 			builder.Services.AddScoped<IProductIngredientRepository, ProductIngredientRepository>();
 			builder.Services.AddScoped<IProductRepository, ProductRepository>();
 			builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
-			builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
+			builder.Services.AddScoped<IInventoryCategoryRepository, InventoryCategoryRepository>();
 
 			builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 			builder.Services.AddScoped<ICustomerService, CustomerService>();
@@ -79,12 +93,31 @@ namespace RestflowAPI
 
 			builder.Services.AddScoped<IFileService, FileService>();
 			builder.Services.AddScoped<IPlatformRepository, PlatformRepository>();
-			#endregion
 
-			#region Fluent Validation Configuration
-			//Add Fluent Validations
-			//builder.Services.AddFluentValidationAutoValidation();
-			builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+
+            builder.Services.AddScoped<IInventoryCategoryRepository, InventoryCategoryRepository>();
+            builder.Services.AddScoped<IInventoryItemRepository, InventoryItemRepository>();
+
+            builder.Services.AddScoped<IInventoryCategoryService, InventoryCategoryService>();
+            builder.Services.AddScoped<IInventoryItemService, InventoryItemService>();
+
+			builder.Services.AddScoped<IStockMovementRepository, StockMovementRepository>();
+            builder.Services.AddScoped<IStockMovementService, StockMovementService>();
+
+            builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+            builder.Services.AddScoped<IOrderItemsRepository, OrderItemRepository>();
+
+            builder.Services.AddScoped<IOrdersService, OrdersService>();
+            builder.Services.AddScoped<IOrderItemService, OrderItemService>();
+
+            builder.Services.AddSingleton<ILogger>(sp =>
+    sp.GetRequiredService<ILogger<OrdersService>>());
+            #endregion
+
+            #region Fluent Validation Configuration
+            //Add Fluent Validations
+            //builder.Services.AddFluentValidationAutoValidation();
+            builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 			#endregion
 			#region DbContext Configuration with Identity
 

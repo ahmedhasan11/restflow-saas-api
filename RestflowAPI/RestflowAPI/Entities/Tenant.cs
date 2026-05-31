@@ -25,4 +25,6 @@ public class Tenant : BaseEntity
     public ICollection<MenuCategory> MenuCategories { get; set; } = new List<MenuCategory>();
     public ICollection<Product> Products { get; set; } = new List<Product>();
     public ICollection<ProductIngredient> ProductIngredients { get; set; } = new List<ProductIngredient>();
+    public ICollection<Order> Orders { get; set; } = new List<Order>();
+    public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
 }

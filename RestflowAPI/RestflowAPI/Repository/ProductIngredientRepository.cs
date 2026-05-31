@@ -80,4 +80,18 @@ public class ProductIngredientRepository : IProductIngredientRepository
             })
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<List<ProductIngredient>>
+GetIngredientsByProductIdsAsync(
+    List<Guid> productIds,
+    Guid tenantId,
+    CancellationToken cancellationToken)
+    {
+        return await _db.ProductIngredients
+            .Include(x => x.InventoryItem)
+            .Where(x =>
+                productIds.Contains(x.ProductId) &&
+                x.TenantId == tenantId)
+            .ToListAsync(cancellationToken);
+    }
 }
