@@ -27,7 +27,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<PlatformSetting> PlatformSettings => Set<PlatformSetting>();
 	public DbSet<Order> Orders => Set<Order>();
 	public DbSet<OrderItem> OrderItems => Set<OrderItem>();
-
 	public DbSet<Employee> Employees => Set<Employee>();
 
 
@@ -46,17 +45,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
 		modelBuilder.Entity<ProductIngredient>().HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantService.TenantId);
 		modelBuilder.Entity<StockMovement>().HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantService.TenantId);
 		modelBuilder.Entity<ApplicationUser>().HasQueryFilter(e => e.DeletedAt == null && (e.TenantId == _tenantService.TenantId || e.TenantId == null));
-<<<<<<< HEAD
-        modelBuilder.Entity<OrderItem>().HasQueryFilter( e => e.DeletedAt == null && e.TenantId == _tenantService.TenantId);
+		modelBuilder.Entity<Employee>().HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantService.TenantId);
+		modelBuilder.Entity<OrderItem>().HasQueryFilter( e => e.DeletedAt == null && e.TenantId == _tenantService.TenantId);
         modelBuilder.Entity<Order>().HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantService.TenantId);
 
     }
-    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-=======
-		modelBuilder.Entity<Employee>().HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantService.TenantId);
-	}
+
 	public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
->>>>>>> origin/main
 	{
 		var now = DateTime.UtcNow;
 
