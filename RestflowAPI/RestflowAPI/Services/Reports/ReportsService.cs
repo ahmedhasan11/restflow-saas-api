@@ -2,16 +2,19 @@
 using RestflowAPI.Enums;
 using RestflowAPI.Repository.Interfaces.Reports;
 using RestflowAPI.ServiceInterfaces.Reports;
+using RestflowAPI.ServiceInterfaces.Tenants;
 
 namespace RestflowAPI.Services.Reports
 {
 	public class ReportsService : IReportsService
 	{
 		private readonly IReportsRepository _reportsRepository;
+		private readonly ICurrentTenantService _tenantService;
 
-		public ReportsService(IReportsRepository reportsRepository)
+		public ReportsService(IReportsRepository reportsRepository, ICurrentTenantService tenantService)
 		{
 			_reportsRepository = reportsRepository;
+			_tenantService = tenantService;
 		}
 		public async Task<FinancialSummaryDto> GetFinancialSummaryAsync(DateTime fromDate, DateTime toDate, CancellationToken cancellationToken)
 		{
@@ -207,6 +210,98 @@ namespace RestflowAPI.Services.Reports
 			{
 				StatusDistribution = statusDistribution,
 				OrderTypeMetrics = orderTypeMetrics
+			};
+		}
+
+		public async Task<InventoryConsumptionDto> GetInventoryConsumptionAsync(DateTime fromDate, DateTime toDate, CancellationToken cancellationToken)
+		{
+			var tenantId = _tenantService.TenantId ?? throw new Exception("Tenant context is required.");
+
+			var start = fromDate.Date;
+			var end = toDate.Date.AddDays(1);
+
+			var activeItems = await _reportsRepository.GetAllActiveInventoryItemsAsync(cancellationToken);
+
+			var movements = await _reportsRepository.GetStockMovementsInRangeAsync(start, end, tenantId, cancellationToken);
+
+			var summaryMap = activeItems.ToDictionary(
+				i => i.Id,
+				i => new StockMovementSummaryDto
+				{
+					InventoryItemId = i.Id,
+					ItemName = i.ItemName,
+					UnitOfMeasure = i.UnitOfMeasure,
+					TotalStockIn = 0,
+					TotalStockOut = 0,
+					TotalAdjustments = 0
+				}
+			);
+
+			var consumptionMap = new Dictionary<Guid, decimal>();
+
+			foreach (var movement in movements)
+			{
+				// Skip if there is no linked inventory item data
+				if (movement.InventoryItem == null) continue;
+				var itemId = movement.InventoryItemId;
+				// If it's a soft-deleted item, it won't be in summaryMap, so add it dynamically
+				if (!summaryMap.TryGetValue(itemId, out var summaryDto))
+				{
+					summaryDto = new StockMovementSummaryDto
+					{
+						InventoryItemId = itemId,
+						ItemName = movement.InventoryItem.ItemName,
+						UnitOfMeasure = movement.InventoryItem.UnitOfMeasure,
+						TotalStockIn = 0,
+						TotalStockOut = 0,
+						TotalAdjustments = 0
+					};
+					summaryMap[itemId] = summaryDto;
+				}
+				// Aggregate by type
+				if (movement.TransactionType == TransactionType.StockIn)
+				{
+					summaryDto.TotalStockIn += movement.Quantity;
+				}
+				else if (movement.TransactionType == TransactionType.StockOut)
+				{
+					summaryDto.TotalStockOut += movement.Quantity;
+
+					// Add to consumption map
+					if (!consumptionMap.ContainsKey(itemId)) consumptionMap[itemId] = 0;
+					consumptionMap[itemId] += movement.Quantity;
+				}
+				else if (movement.TransactionType == TransactionType.Adjustment)
+				{
+					summaryDto.TotalAdjustments += movement.Quantity;
+					// Add negative adjustments to consumption map
+					if (movement.Quantity < 0)
+					{
+						if (!consumptionMap.ContainsKey(itemId)) consumptionMap[itemId] = 0;
+						consumptionMap[itemId] += -movement.Quantity; // convert to positive consumption volume
+					}
+				}
+			}
+			// 4. Build Ranked Most Consumed Ingredients List
+			var consumedIngredients = new List<IngredientConsumptionDto>();
+			foreach (var kvp in consumptionMap)
+			{
+				if (kvp.Value > 0 && summaryMap.TryGetValue(kvp.Key, out var summary))
+				{
+					consumedIngredients.Add(new IngredientConsumptionDto
+					{
+						InventoryItemId = kvp.Key,
+						ItemName = summary.ItemName,
+						TotalConsumption = kvp.Value,
+						UnitOfMeasure = summary.UnitOfMeasure
+					});
+				}
+			}
+			var rankedConsumption = consumedIngredients.OrderByDescending(c => c.TotalConsumption).ThenBy(c => c.ItemName).ToList();
+			return new InventoryConsumptionDto
+			{
+				MostConsumedIngredients = rankedConsumption,
+				StockMovementSummaries = summaryMap.Values.ToList()
 			};
 		}
 	}

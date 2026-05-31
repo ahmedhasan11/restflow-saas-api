@@ -88,5 +88,20 @@ namespace RestflowAPI.Controllers
 			var volume = await _reportsService.GetOperationalVolumeAsync(from.Value, to.Value, cancellationToken);
 			return Ok(volume);
 		}
+
+		[HttpGet("inventory-consumption")]
+		public async Task<IActionResult> GetInventoryConsumption([FromQuery] DateTime? from,[FromQuery] DateTime? to,CancellationToken cancellationToken = default)
+		{
+			if (!from.HasValue || !to.HasValue)
+			{
+				return BadRequest(new { message = "Both 'from' and 'to' query parameters are required." });
+			}
+			if (from.Value > to.Value)
+			{
+				return BadRequest(new { message = "The 'from' date must be less than or equal to the 'to' date." });
+			}
+			var consumption = await _reportsService.GetInventoryConsumptionAsync(from.Value, to.Value, cancellationToken);
+			return Ok(consumption);
+		}
 	}
 }

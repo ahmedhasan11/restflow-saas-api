@@ -65,5 +65,23 @@ namespace RestflowAPI.Repository.Reports
 				.Where(o => o.CreatedAt >= fromDate && o.CreatedAt < toDate)
 				.ToListAsync(cancellationToken);
 		}
+
+		public async Task<List<Entities.InventoryItem>> GetAllActiveInventoryItemsAsync(CancellationToken cancellationToken)
+		{
+			return await _db.InventoryItems	.ToListAsync(cancellationToken);
+		}
+
+		public async Task<List<StockMovement>> GetStockMovementsInRangeAsync(DateTime fromDate, DateTime toDate, Guid tenantId, CancellationToken cancellationToken)
+		{
+			// Ignore query filters to load soft-deleted inventory items if they have historical stock movements
+			return await _db.StockMovements
+				.IgnoreQueryFilters()
+				.Include(m => m.InventoryItem)
+				.Where(m => m.TenantId == tenantId
+							&& m.DeletedAt == null
+							&& m.CreatedAt >= fromDate
+							&& m.CreatedAt < toDate)
+				.ToListAsync(cancellationToken);
+		}
 	}
 }
