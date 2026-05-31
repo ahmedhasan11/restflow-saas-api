@@ -15,4 +15,5 @@ public class Customer : BaseEntity, IMustHaveTenant
 
 	// Navigation Properties
 	public Tenant Tenant { get; set; } = null!;
+    public ICollection<Order> orders { get; set; } = new List<Order>();
 }

@@ -513,6 +513,119 @@ namespace RestflowAPI.Migrations
                     b.ToTable("MenuCategories", (string)null);
                 });
 
+            modelBuilder.Entity("RestflowAPI.Entities.Order", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CustomerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OrderNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int?>("OrderStatus")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("OrderType")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("PaymentStatus")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("Subtotal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("TotalAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("Orders");
+                });
+
+            modelBuilder.Entity("RestflowAPI.Entities.OrderItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal?>("LineTotal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ProductNameSnapshot")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal?>("Quantity")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("UnitPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("OrderItems");
+                });
+
             modelBuilder.Entity("RestflowAPI.Entities.OtpVerification", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1008,6 +1121,51 @@ namespace RestflowAPI.Migrations
                     b.Navigation("Tenant");
                 });
 
+            modelBuilder.Entity("RestflowAPI.Entities.Order", b =>
+                {
+                    b.HasOne("RestflowAPI.Entities.Customer", "Customer")
+                        .WithMany("orders")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("RestflowAPI.Entities.Tenant", "Tenant")
+                        .WithMany("Orders")
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("RestflowAPI.Entities.OrderItem", b =>
+                {
+                    b.HasOne("RestflowAPI.Entities.Order", "Order")
+                        .WithMany("OrderItems")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RestflowAPI.Entities.Product", "Product")
+                        .WithMany("orderItems")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RestflowAPI.Entities.Tenant", "Tenant")
+                        .WithMany("OrderItems")
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Tenant");
+                });
+
             modelBuilder.Entity("RestflowAPI.Entities.OtpVerification", b =>
                 {
                     b.HasOne("RestflowAPI.Entities.ApplicationUser", "User")
@@ -1104,6 +1262,11 @@ namespace RestflowAPI.Migrations
                     b.Navigation("RefreshTokens");
                 });
 
+            modelBuilder.Entity("RestflowAPI.Entities.Customer", b =>
+                {
+                    b.Navigation("orders");
+                });
+
             modelBuilder.Entity("RestflowAPI.Entities.InventoryCategory", b =>
                 {
                     b.Navigation("InventoryItems");
@@ -1121,9 +1284,16 @@ namespace RestflowAPI.Migrations
                     b.Navigation("Products");
                 });
 
+            modelBuilder.Entity("RestflowAPI.Entities.Order", b =>
+                {
+                    b.Navigation("OrderItems");
+                });
+
             modelBuilder.Entity("RestflowAPI.Entities.Product", b =>
                 {
                     b.Navigation("ProductIngredients");
+
+                    b.Navigation("orderItems");
                 });
 
             modelBuilder.Entity("RestflowAPI.Entities.Tenant", b =>
@@ -1133,6 +1303,10 @@ namespace RestflowAPI.Migrations
                     b.Navigation("InventoryItems");
 
                     b.Navigation("MenuCategories");
+
+                    b.Navigation("OrderItems");
+
+                    b.Navigation("Orders");
 
                     b.Navigation("ProductIngredients");
 

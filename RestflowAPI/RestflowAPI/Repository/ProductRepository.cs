@@ -12,6 +12,8 @@ public class ProductRepository : IProductRepository
         _db = db;
     }
 
+
+
     public async Task<Product?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
         return await _db.Products
@@ -20,6 +22,7 @@ public class ProductRepository : IProductRepository
 
     public async Task<Product?> GetWithIngredientsAsync(Guid id, CancellationToken cancellationToken)
     {
+        
         return await _db.Products
             .Include(p => p.ProductIngredients)
             .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
@@ -27,6 +30,8 @@ public class ProductRepository : IProductRepository
 
     public async Task AddAsync(Product product, CancellationToken cancellationToken)
     {
+        
+
         await _db.Products.AddAsync(product, cancellationToken);
     }
 

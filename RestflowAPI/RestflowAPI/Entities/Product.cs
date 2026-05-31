@@ -19,4 +19,5 @@ public class Product : BaseEntity, IMustHaveTenant
     public Tenant Tenant { get; set; } = null!;
     public MenuCategory Category { get; set; } = null!;
     public ICollection<ProductIngredient> ProductIngredients { get; set; } = new List<ProductIngredient>();
+    public ICollection<OrderItem> orderItems { get; set; } = new List<OrderItem>();
 }
