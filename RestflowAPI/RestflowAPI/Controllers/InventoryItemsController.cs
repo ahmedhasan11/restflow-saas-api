@@ -9,7 +9,7 @@ namespace RestflowAPI.Controllers
 
     [ApiController]
     [Route("inventory/items")]
-    //[Authorize(Roles = "Owner,Employee")]
+    [Authorize(Roles = "Owner,Employee")]
     public class InventoryItemsController : ControllerBase
     {
         private readonly IInventoryItemService _service;

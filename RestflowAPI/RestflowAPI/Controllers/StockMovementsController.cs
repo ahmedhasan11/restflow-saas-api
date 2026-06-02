@@ -8,7 +8,7 @@ namespace RestflowAPI.Controllers
 {
     [ApiController]
     [Route("inventory/items")]
-    //[Authorize(Roles = "Owner,Employee")]
+    [Authorize(Roles = "Owner,Employee")]
     public class StockMovementsController : ControllerBase
     {
         private readonly IStockMovementService _service;
