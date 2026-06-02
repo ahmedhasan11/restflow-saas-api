@@ -73,7 +73,6 @@ namespace RestflowAPI.Controllers
 			var performance = await _reportsService.GetMenuPerformanceAsync(from.Value, to.Value, sort, cancellationToken);
 			return Ok(performance);
 		}
-
 		[HttpGet("operational-volume")]
 		public async Task<IActionResult> GetOperationalVolume([FromQuery] DateTime? from,[FromQuery] DateTime? to,CancellationToken cancellationToken = default)
 		{
@@ -87,6 +86,43 @@ namespace RestflowAPI.Controllers
 			}
 			var volume = await _reportsService.GetOperationalVolumeAsync(from.Value, to.Value, cancellationToken);
 			return Ok(volume);
+		}
+
+
+		[HttpGet("order-status-distribution")]
+		public async Task<IActionResult> GetOrderStatusDistribution([FromQuery] DateTime? from,	[FromQuery] DateTime? to,
+		    CancellationToken cancellationToken = default)
+		{
+			if (!from.HasValue || !to.HasValue)
+			{
+				return BadRequest(new { message = "Both 'from' and 'to' query parameters are required." });
+			}
+
+			if (from.Value > to.Value)
+			{
+				return BadRequest(new { message = "The 'from' date must be less than or equal to the 'to' date." });
+			}
+
+			var distribution = await _reportsService.GetOrderStatusDistributionAsync(from.Value, to.Value, cancellationToken);
+			return Ok(distribution);
+		}
+
+		[HttpGet("order-type-analysis")]
+		public async Task<IActionResult> GetOrderTypeAnalysis([FromQuery] DateTime? from,[FromQuery] DateTime? to,
+			CancellationToken cancellationToken = default)
+		{
+			if (!from.HasValue || !to.HasValue)
+			{
+				return BadRequest(new { message = "Both 'from' and 'to' query parameters are required." });
+			}
+
+			if (from.Value > to.Value)
+			{
+				return BadRequest(new { message = "The 'from' date must be less than or equal to the 'to' date." });
+			}
+
+			var analysis = await _reportsService.GetOrderTypeAnalysisAsync(from.Value, to.Value, cancellationToken);
+			return Ok(analysis);
 		}
 
 		[HttpGet("inventory-consumption")]

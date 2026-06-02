@@ -19,7 +19,6 @@ namespace RestflowAPI.Repository.Reports
 		{
 			return await _db.Products.ToListAsync(cancellationToken);
 		}
-
 		public async Task<List<Order>> GetCompletedOrdersInRangeAsync(DateTime fromDate, DateTime toDate, CancellationToken cancellationToken)
 		{
 			return await _db.Orders
