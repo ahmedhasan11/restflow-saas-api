@@ -299,7 +299,6 @@ namespace RestflowAPI.Services.Reports
 				StockMovementSummaries = summaryMap.Values.ToList()
 			};
 		}
-
 		public async Task<StatusDistributionDto> GetOrderStatusDistributionAsync(DateTime fromDate, DateTime toDate, CancellationToken cancellationToken)
 		{
 			var start = fromDate.Date;
@@ -316,7 +315,6 @@ namespace RestflowAPI.Services.Reports
 
 			return statusDistribution;
 		}
-
 		public async Task<List<OrderTypeMetricDto>> GetOrderTypeAnalysisAsync(DateTime fromDate, DateTime toDate, CancellationToken cancellationToken)
 		{
 			var start = fromDate.Date;

@@ -9,7 +9,7 @@ using RestflowAPI.ServiceInterfaces.InventoryCategory;
 namespace RestflowAPI.Controllers
 {
     [Route("api/inventory-categories")]
-    //[Authorize(Policy = Permissions.Policies.SuperAdminOnly)]
+    [Authorize(Policy = Permissions.Policies.SuperAdminOnly)]
     [ApiController]
     public class InventoryCategoriesController : ControllerBase
     {
