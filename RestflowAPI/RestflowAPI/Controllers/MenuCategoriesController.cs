@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using RestflowAPI.Constants;
 using RestflowAPI.DTOs.MenuCategory;
+using RestflowAPI.DTOs.MenuCategoryDtos;
 using RestflowAPI.ServiceInterfaces.ImenuCategory;
 
 namespace RestflowAPI.Controllers
@@ -20,7 +21,7 @@ namespace RestflowAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
+        public async Task<ActionResult<List<MenuCategoryDto>>> GetAll(CancellationToken cancellationToken)
         {
             var result = await _service.GetAllAsync(cancellationToken);
             return Ok(result);
@@ -33,7 +34,7 @@ namespace RestflowAPI.Controllers
             return Ok();
         }
         [HttpPost]
-        public async Task<IActionResult> Create(CreateMenuCategoryDto dto, CancellationToken cancellationToken)
+        public async Task<ActionResult<Guid>> Create(CreateMenuCategoryDto dto, CancellationToken cancellationToken)
         {
             var menu = await _service.CreateAsync(dto, cancellationToken);
             return Ok(menu);

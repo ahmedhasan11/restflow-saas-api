@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using RestflowAPI.Constants;
+using RestflowAPI.DTOs.Common;
 using RestflowAPI.DTOs.Settings;
 using RestflowAPI.ServiceInterfaces.Settings;
 using System.Security.Claims;
@@ -24,7 +25,7 @@ namespace RestflowAPI.Controllers
 		}
 
 		[HttpGet("profile")]
-		public async Task<IActionResult> GetProfile(CancellationToken cancellationToken)
+		public async Task<ActionResult<UserProfileDto>> GetProfile(CancellationToken cancellationToken)
 		{
 			var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 			if (!Guid.TryParse(userIdString, out var userId))
@@ -37,7 +38,7 @@ namespace RestflowAPI.Controllers
 		}
 
 		[HttpPatch("profile")]
-		public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDto request, CancellationToken cancellationToken)
+		public async Task<ActionResult<MessageResponse>> UpdateProfile([FromBody] UpdateProfileDto request, CancellationToken cancellationToken)
 		{
 			var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 			if (!Guid.TryParse(userIdString, out var userId))
@@ -46,12 +47,12 @@ namespace RestflowAPI.Controllers
 			}
 
 			await _settingsService.UpdateProfileAsync(userId, request, cancellationToken);
-			return Ok(new { message = "Profile updated successfully." });
+			return Ok(new MessageResponse{ Message = "Profile updated successfully." });
 		}
 
 		[HttpPost("profile/image")]
 		[Consumes("multipart/form-data")]
-		public async Task<IActionResult> UploadProfileImage(IFormFile file, CancellationToken cancellationToken)
+		public async Task<ActionResult<ImageUploadResponse>> UploadProfileImage(IFormFile file, CancellationToken cancellationToken)
 		{
 			var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 			if (!Guid.TryParse(userIdString, out var userId))
@@ -60,11 +61,11 @@ namespace RestflowAPI.Controllers
 			}
 
 			var imageUrl = await _settingsService.UploadProfileImageAsync(userId, file, cancellationToken);
-			return Ok(new { imageUrl, message = "Profile image uploaded successfully." });
+			return Ok(new ImageUploadResponse{ ImageUrl =  imageUrl, Message = "Profile image uploaded successfully." });
 		}
 
 		[HttpGet("notifications")]
-		public async Task<IActionResult> GetNotificationSettings(CancellationToken cancellationToken)
+		public async Task<ActionResult<NotificationSettingsDto>> GetNotificationSettings(CancellationToken cancellationToken)
 		{
 			var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 			if (!Guid.TryParse(userIdString, out var userId))
@@ -77,7 +78,7 @@ namespace RestflowAPI.Controllers
 		}
 
 		[HttpPatch("notifications")]
-		public async Task<IActionResult> UpdateNotificationSettings([FromBody] NotificationSettingsDto request, CancellationToken cancellationToken)
+		public async Task<ActionResult<MessageResponse>> UpdateNotificationSettings([FromBody] NotificationSettingsDto request, CancellationToken cancellationToken)
 		{
 			var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 			if (!Guid.TryParse(userIdString, out var userId))
@@ -86,12 +87,12 @@ namespace RestflowAPI.Controllers
 			}
 
 			await _settingsService.UpdateNotificationSettingsAsync(userId, request, cancellationToken);
-			return Ok(new { message = "Notification preferences updated successfully." });
+			return Ok(new MessageResponse{ Message = "Notification preferences updated successfully." });
 		}
 
 		[HttpGet("restaurant")]
 		[Authorize(Policy = Permissions.Policies.OwnerOnly)]
-		public async Task<IActionResult> GetRestaurantSettings(CancellationToken cancellationToken)
+		public async Task<ActionResult<RestaurantSettingsDto>> GetRestaurantSettings(CancellationToken cancellationToken)
 		{
 			var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 			if (!Guid.TryParse(userIdString, out var userId))
@@ -105,7 +106,7 @@ namespace RestflowAPI.Controllers
 
 		[HttpPatch("restaurant")]
 		[Authorize(Policy = Permissions.Policies.OwnerOnly)]
-		public async Task<IActionResult> UpdateRestaurantSettings([FromBody] UpdateRestaurantSettingsDto request, CancellationToken cancellationToken)
+		public async Task<ActionResult<MessageResponse>> UpdateRestaurantSettings([FromBody] UpdateRestaurantSettingsDto request, CancellationToken cancellationToken)
 		{
 			var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 			if (!Guid.TryParse(userIdString, out var userId))
@@ -114,13 +115,13 @@ namespace RestflowAPI.Controllers
 			}
 
 			await _settingsService.UpdateRestaurantSettingsAsync(userId, request, cancellationToken);
-			return Ok(new { message = "Restaurant settings updated successfully." });
+			return Ok(new MessageResponse { Message = "Restaurant settings updated successfully." });
 		}
 
 		[HttpPost("restaurant/logo")]
 		[Authorize(Policy = Permissions.Policies.OwnerOnly)]
 		[Consumes("multipart/form-data")]
-		public async Task<IActionResult> UploadRestaurantLogo(IFormFile file, CancellationToken cancellationToken)
+		public async Task<ActionResult<LogoUploadResponse>> UploadRestaurantLogo(IFormFile file, CancellationToken cancellationToken)
 		{
 			var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 			if (!Guid.TryParse(userIdString, out var userId))
@@ -129,7 +130,7 @@ namespace RestflowAPI.Controllers
 			}
 
 			var logoUrl = await _settingsService.UploadRestaurantLogoAsync(userId, file, cancellationToken);
-			return Ok(new { logoUrl, message = "Restaurant logo uploaded successfully." });
+			return Ok(new LogoUploadResponse {LogoUrl= logoUrl, Message = "Restaurant logo uploaded successfully." });
 		}
 
 

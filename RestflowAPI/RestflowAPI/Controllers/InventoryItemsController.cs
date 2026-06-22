@@ -20,7 +20,7 @@ namespace RestflowAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll(
+        public async Task<ActionResult<List<InventoryItemResponseDto>>> GetAll(
             string? search,
             Guid? categoryId,
             CancellationToken cancellationToken)
@@ -34,7 +34,7 @@ namespace RestflowAPI.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(
+        public async Task<ActionResult<InventoryItemResponseDto>> GetById(
             Guid id,
             CancellationToken cancellationToken)
         {
@@ -45,7 +45,7 @@ namespace RestflowAPI.Controllers
 
         
         [HttpPost]
-        public async Task<IActionResult> Create(
+        public async Task<ActionResult<Guid>> Create(
             CreateInventoryItemDto dto,
             CancellationToken cancellationToken)
         {

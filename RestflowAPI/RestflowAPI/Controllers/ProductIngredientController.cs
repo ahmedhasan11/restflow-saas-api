@@ -42,7 +42,7 @@ namespace RestflowAPI.Controllers
         }
 
         [HttpGet("menu/products/{id}/ingredients")]
-        public async Task<IActionResult> GetByProduct(
+        public async Task<ActionResult<List<ProductIngredientDto>>> GetByProduct(
     Guid id,
     CancellationToken cancellationToken)
         {

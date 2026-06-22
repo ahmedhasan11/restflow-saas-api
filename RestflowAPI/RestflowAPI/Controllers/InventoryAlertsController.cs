@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using RestflowAPI.DTOs.LowStockAlert;
 using RestflowAPI.ServiceInterfaces.InventoryCategory;
 using RestflowAPI.ServiceInterfaces.LowStockAlert;
 
@@ -17,7 +18,7 @@ namespace RestflowAPI.Controllers
             _service = service;
         }
         [HttpGet("alerts/low-stock")]
-        public async Task<IActionResult> GetLowStockItems(
+        public async Task<ActionResult<List<LowStockAlertDto>>> GetLowStockItems(
     CancellationToken cancellationToken)
         {
             var result = await _service

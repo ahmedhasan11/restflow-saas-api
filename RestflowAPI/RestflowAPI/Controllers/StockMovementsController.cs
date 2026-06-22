@@ -34,7 +34,7 @@ namespace RestflowAPI.Controllers
         }
 
         [HttpGet("{id}/transactions")]
-        public async Task<IActionResult> History(
+        public async Task<ActionResult<List<StockMovementDto>>> History(
             Guid id,
             CancellationToken cancellationToken)
         {

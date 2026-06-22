@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using RestflowAPI.Constants;
+using RestflowAPI.DTOs.Reports;
 using RestflowAPI.ServiceInterfaces.Reports;
 
 namespace RestflowAPI.Controllers
@@ -18,7 +19,7 @@ namespace RestflowAPI.Controllers
 		}
 
 		[HttpGet("financial-summary")]
-		public async Task<IActionResult> GetFinancialSummary([FromQuery] DateTime? from,[FromQuery] DateTime? to,CancellationToken cancellationToken)
+		public async Task<ActionResult<FinancialSummaryDto>> GetFinancialSummary([FromQuery] DateTime? from,[FromQuery] DateTime? to,CancellationToken cancellationToken)
 		{
 			if (!from.HasValue || !to.HasValue)
 			{
@@ -35,7 +36,7 @@ namespace RestflowAPI.Controllers
 		}
 
 		[HttpGet("revenue-chart")]
-		public async Task<IActionResult> GetRevenueChart([FromQuery] string period = "week", CancellationToken cancellationToken = default)
+		public async Task<ActionResult<List<ChartDataPointDto>>> GetRevenueChart([FromQuery] string period = "week", CancellationToken cancellationToken = default)
 		{
 			var supportedPeriods = new[] { "week", "month", "year" };
 			if (string.IsNullOrWhiteSpace(period) || !supportedPeriods.Contains(period.ToLower()))
@@ -54,7 +55,7 @@ namespace RestflowAPI.Controllers
 		}
 
 		[HttpGet("menu-performance")]
-		public async Task<IActionResult> GetMenuPerformance([FromQuery] DateTime? from,	[FromQuery] DateTime? to, [FromQuery] string sort = "desc",
+		public async Task<ActionResult<List<MenuPerformanceDto>>> GetMenuPerformance([FromQuery] DateTime? from,	[FromQuery] DateTime? to, [FromQuery] string sort = "desc",
 															CancellationToken cancellationToken = default)
 		{
 			if (!from.HasValue || !to.HasValue)
@@ -74,7 +75,7 @@ namespace RestflowAPI.Controllers
 			return Ok(performance);
 		}
 		[HttpGet("operational-volume")]
-		public async Task<IActionResult> GetOperationalVolume([FromQuery] DateTime? from,[FromQuery] DateTime? to,CancellationToken cancellationToken = default)
+		public async Task<ActionResult<OperationalVolumeDto>> GetOperationalVolume([FromQuery] DateTime? from,[FromQuery] DateTime? to,CancellationToken cancellationToken = default)
 		{
 			if (!from.HasValue || !to.HasValue)
 			{
@@ -90,7 +91,7 @@ namespace RestflowAPI.Controllers
 
 
 		[HttpGet("order-status-distribution")]
-		public async Task<IActionResult> GetOrderStatusDistribution([FromQuery] DateTime? from,	[FromQuery] DateTime? to,
+		public async Task<ActionResult<StatusDistributionDto>> GetOrderStatusDistribution([FromQuery] DateTime? from,	[FromQuery] DateTime? to,
 		    CancellationToken cancellationToken = default)
 		{
 			if (!from.HasValue || !to.HasValue)
@@ -108,7 +109,7 @@ namespace RestflowAPI.Controllers
 		}
 
 		[HttpGet("order-type-analysis")]
-		public async Task<IActionResult> GetOrderTypeAnalysis([FromQuery] DateTime? from,[FromQuery] DateTime? to,
+		public async Task<ActionResult<List<OrderTypeMetricDto>>> GetOrderTypeAnalysis([FromQuery] DateTime? from,[FromQuery] DateTime? to,
 			CancellationToken cancellationToken = default)
 		{
 			if (!from.HasValue || !to.HasValue)
@@ -126,7 +127,7 @@ namespace RestflowAPI.Controllers
 		}
 
 		[HttpGet("inventory-consumption")]
-		public async Task<IActionResult> GetInventoryConsumption([FromQuery] DateTime? from,[FromQuery] DateTime? to,CancellationToken cancellationToken = default)
+		public async Task<ActionResult<InventoryConsumptionDto>> GetInventoryConsumption([FromQuery] DateTime? from,[FromQuery] DateTime? to,CancellationToken cancellationToken = default)
 		{
 			if (!from.HasValue || !to.HasValue)
 			{

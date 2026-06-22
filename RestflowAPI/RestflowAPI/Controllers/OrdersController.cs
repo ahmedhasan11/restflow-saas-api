@@ -21,7 +21,7 @@ namespace RestflowAPI.Controllers
 
 
         [HttpPost]
-        public async Task<IActionResult> Create(
+        public async Task<ActionResult<Guid>> Create(
     CreateOrderDto dto,
     CancellationToken cancellationToken)
         {
@@ -33,7 +33,7 @@ namespace RestflowAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll(
+        public async Task<ActionResult<List<OrderListDto>>> GetAll(
     string? search,
     OrderStatus? status,
     PaymentStatus? paymentStatus,
@@ -56,7 +56,7 @@ namespace RestflowAPI.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(
+        public async Task<ActionResult<OrderListDto>> GetById(
     Guid id,
     CancellationToken cancellationToken)
         {

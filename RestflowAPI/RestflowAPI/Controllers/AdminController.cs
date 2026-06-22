@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using RestflowAPI.Constants;
 using RestflowAPI.DTOs.Auth;
+using RestflowAPI.DTOs.Common;
 using RestflowAPI.DTOs.Settings;
 using RestflowAPI.DTOs.Tenants;
 using RestflowAPI.ServiceInterfaces.Auth;
@@ -29,7 +30,7 @@ namespace RestflowAPI.Controllers
 		}
 
 		[HttpPost("tenants")]
-		public async Task<IActionResult> CreateTenant([FromBody] CreateTenantRequestDto request, CancellationToken cancellationToken)
+		public async Task<ActionResult<TenantResponseDto>> CreateTenant([FromBody] CreateTenantRequestDto request, CancellationToken cancellationToken)
 		{
 			var result = await _tenantService.CreateTenantAsync(request, cancellationToken);
 			//lsa m5lsna4 hna 
@@ -37,7 +38,7 @@ namespace RestflowAPI.Controllers
 		}
 
 		[HttpGet("tenants")]
-		public async Task<IActionResult> GetAllTenants(CancellationToken cancellationToken)
+		public async Task<ActionResult<IEnumerable<TenantResponseDto>>> GetAllTenants(CancellationToken cancellationToken)
 		{
 			var result = await _tenantService.GetAllTenantsAsync(cancellationToken);
 			//lsa m5lsna4 hna
@@ -46,21 +47,21 @@ namespace RestflowAPI.Controllers
 
 
 		[HttpPatch("tenants/{id}")]
-		public async Task<IActionResult> UpdateTenant(Guid id, [FromBody] UpdateTenantRequestDto request, CancellationToken cancellationToken)
+		public async Task<ActionResult<TenantResponseDto>> UpdateTenant(Guid id, [FromBody] UpdateTenantRequestDto request, CancellationToken cancellationToken)
 		{
 			var result = await _tenantService.UpdateTenantAsync(id, request, cancellationToken);
 			return Ok(result);
 		}
 
 		[HttpPost("users")]
-		public async Task<IActionResult> CreateUser([FromBody] CreateUserByAdminDto request, CancellationToken cancellationToken)
+		public async Task<ActionResult<AuthResponseDto>> CreateUser([FromBody] CreateUserByAdminDto request, CancellationToken cancellationToken)
 		{
 			var result = await _authService.CreateUserByAdminAsync(request, cancellationToken);
 			return Ok(result);
 		}
 
 		[HttpPatch("tenants/{id}/status")]
-		public async Task<IActionResult> ChangeTenantStatus(Guid id, [FromBody] ChangeTenantStatusDto request, CancellationToken cancellationToken)
+		public async Task<ActionResult<TenantResponseDto>> ChangeTenantStatus(Guid id, [FromBody] ChangeTenantStatusDto request, CancellationToken cancellationToken)
 		{
 			var result = await _tenantService.ChangeTenantStatusAsync(id, request, cancellationToken);
 			return Ok(result);
@@ -68,7 +69,7 @@ namespace RestflowAPI.Controllers
 
 		[HttpGet("platform")]
 
-		public async Task<IActionResult> GetPlatformSettings(CancellationToken cancellationToken)
+		public async Task<ActionResult<PlatformSettingsDto>> GetPlatformSettings(CancellationToken cancellationToken)
 		{
 			var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 			if (!Guid.TryParse(userIdString, out var userId))
@@ -81,7 +82,7 @@ namespace RestflowAPI.Controllers
 		}
 
 		[HttpPatch("platform")]
-		public async Task<IActionResult> UpdatePlatformSettings([FromBody] UpdatePlatformSettingsDto request, CancellationToken cancellationToken)
+		public async Task<ActionResult<MessageResponse>> UpdatePlatformSettings([FromBody] UpdatePlatformSettingsDto request, CancellationToken cancellationToken)
 		{
 			var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 			if (!Guid.TryParse(userIdString, out var userId))
@@ -90,11 +91,11 @@ namespace RestflowAPI.Controllers
 			}
 
 			await _settingsService.UpdatePlatformSettingsAsync(userId, request, cancellationToken);
-			return Ok(new { message = "Platform settings updated successfully." });
+			return Ok(new MessageResponse { Message = "Platform settings updated successfully." });
 		}
 
 		[HttpPatch("platform/api")]
-		public async Task<IActionResult> UpdateApiSettings([FromBody] UpdatePlatformApiSettingsDto request, CancellationToken cancellationToken)
+		public async Task<ActionResult<MessageResponse>> UpdateApiSettings([FromBody] UpdatePlatformApiSettingsDto request, CancellationToken cancellationToken)
 		{
 			var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 			if (!Guid.TryParse(userIdString, out var userId))
@@ -103,7 +104,7 @@ namespace RestflowAPI.Controllers
 			}
 
 			await _settingsService.UpdatePlatformApiSettingsAsync(userId, request, cancellationToken);
-			return Ok(new { message = "API configurations updated successfully." });
+			return Ok(new MessageResponse { Message = "API configurations updated successfully." });
 		}
 	}
 }
