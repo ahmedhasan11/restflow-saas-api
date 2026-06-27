@@ -28,6 +28,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
 	public DbSet<Order> Orders => Set<Order>();
 	public DbSet<OrderItem> OrderItems => Set<OrderItem>();
 	public DbSet<Employee> Employees => Set<Employee>();
+	public DbSet<Notification> Notifications => Set<Notification>();
 
 
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -48,8 +49,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
 		modelBuilder.Entity<Employee>().HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantService.TenantId);
 		modelBuilder.Entity<OrderItem>().HasQueryFilter( e => e.DeletedAt == null && e.TenantId == _tenantService.TenantId);
         modelBuilder.Entity<Order>().HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantService.TenantId);
-
-    }
+		modelBuilder.Entity<Notification>().HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantService.TenantId);
+	}
 
 	public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
 	{
