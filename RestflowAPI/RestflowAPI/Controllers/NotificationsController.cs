@@ -45,5 +45,18 @@ namespace RestflowAPI.Controllers
 			await _notificationsService.MarkAsReadAsync(id, userId, ct);
 			return NoContent();
 		}
+
+		[HttpPost("mark-all-read")]
+		public async Task<IActionResult> MarkAllAsRead(CancellationToken ct)
+		{
+			var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+			if (!Guid.TryParse(userIdString, out var userId))
+			{
+				return Unauthorized();
+			}
+
+			await _notificationsService.MarkAllAsReadAsync(userId, ct);
+			return NoContent();
+		}
 	}
 }
