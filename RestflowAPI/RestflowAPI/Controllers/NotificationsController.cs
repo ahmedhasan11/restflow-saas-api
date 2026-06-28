@@ -21,7 +21,7 @@ namespace RestflowAPI.Controllers
 
 		[HttpGet]
 		public async Task<ActionResult<NotificationListResponseDto>> GetNotifications(
-	[FromQuery] GetNotificationsRequestDto query,	CancellationToken ct = default)
+	    [FromQuery] GetNotificationsRequestDto query,CancellationToken ct = default)
 		{
 			var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 			if (!Guid.TryParse(userIdString, out var userId))
@@ -31,6 +31,19 @@ namespace RestflowAPI.Controllers
 
 			var result = await _notificationsService.GetUserNotificationsAsync(userId, query, ct);
 			return Ok(result);
+		}
+
+		[HttpPatch("{id}/read")]
+		public async Task<IActionResult> MarkAsRead(Guid id, CancellationToken ct)
+		{
+			var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+			if (!Guid.TryParse(userIdString, out var userId))
+			{
+				return Unauthorized();
+			}
+
+			await _notificationsService.MarkAsReadAsync(id, userId, ct);
+			return NoContent();
 		}
 	}
 }
