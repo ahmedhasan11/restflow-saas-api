@@ -32,6 +32,7 @@ using RestflowAPI.ServiceInterfaces.Employees;
 using RestflowAPI.ServiceInterfaces.ImenuCategory;
 using RestflowAPI.ServiceInterfaces.InventoryCategory;
 using RestflowAPI.ServiceInterfaces.InventoryItems;
+using RestflowAPI.ServiceInterfaces.Notifications;
 using RestflowAPI.ServiceInterfaces.Orders;
 using RestflowAPI.ServiceInterfaces.ProductIngredient;
 using RestflowAPI.ServiceInterfaces.Reports;
@@ -43,6 +44,7 @@ using RestflowAPI.Services.Auth;
 using RestflowAPI.Services.Customers;
 using RestflowAPI.Services.Employees;
 using RestflowAPI.Services.InventoryItems;
+using RestflowAPI.Services.Notifications;
 using RestflowAPI.Services.Orders;
 using RestflowAPI.Services.Reports;
 using RestflowAPI.Services.Settings;
@@ -129,6 +131,7 @@ namespace RestflowAPI
 			builder.Services.AddScoped<IReportsRepository, ReportsRepository>();
 
 			builder.Services.AddScoped<INotificationsRepository, NotificationsRepository>();
+			builder.Services.AddScoped<INotificationsService, NotificationsService>();
 			#endregion
 
 			#region Fluent Validation Configuration
