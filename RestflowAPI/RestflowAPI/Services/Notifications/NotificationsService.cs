@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using FluentValidation;
+using Microsoft.EntityFrameworkCore;
 using RestflowAPI.Constants;
 using RestflowAPI.Data;
 using RestflowAPI.Data.UnitOfWork;
@@ -21,20 +22,28 @@ namespace RestflowAPI.Services.Notifications
 		private readonly ICurrentTenantService _tenantService;
 		private readonly IUnitOfWork _unitOfWork;
 		private readonly ILogger<NotificationsService> _logger;
+		private readonly IValidator<GetNotificationsRequestDto> _validator;
 		public NotificationsService(INotificationsRepository notificationsRepository, ApplicationDbContext db,
-			ICurrentTenantService tenantService, IUnitOfWork unitOfWork, ILogger<NotificationsService> logger)
+			ICurrentTenantService tenantService, IUnitOfWork unitOfWork
+			, ILogger<NotificationsService> logger, IValidator<GetNotificationsRequestDto> validator)
 		{
 			_notificationsRepository = notificationsRepository;
 			_db = db;
 			_tenantService = tenantService;
 			_unitOfWork = unitOfWork;
 			_logger = logger;
+			_validator = validator;
 		}
-		public async Task<NotificationListResponseDto> GetUserNotificationsAsync(Guid userId, int page, int pageSize, CancellationToken ct)
+		public async Task<NotificationListResponseDto> GetUserNotificationsAsync(Guid userId, GetNotificationsRequestDto query, CancellationToken ct)
 		{
+			var result = await _validator.ValidateAsync(query, ct);
+			if (!result.IsValid)
+			{
+				throw new AppValidationException(result.Errors.Select(e => e.ErrorMessage));
+			}
 			var tenantId = _tenantService.TenantId ?? throw new Exception("Tenant required");
 
-			var notifications = await _notificationsRepository.GetByUserIdAsync(userId, tenantId, page, pageSize, ct);
+			var notifications = await _notificationsRepository.GetByUserIdAsync(userId, tenantId, query.Page, query.PageSize, ct);
 			var unreadCount = await _notificationsRepository.GetUnreadCountAsync(userId, tenantId, ct);
 
 			var totalCount = await _db.Notifications.CountAsync(x => x.UserId == userId && x.TenantId == tenantId, ct);
