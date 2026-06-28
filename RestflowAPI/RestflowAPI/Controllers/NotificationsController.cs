@@ -58,5 +58,18 @@ namespace RestflowAPI.Controllers
 			await _notificationsService.MarkAllAsReadAsync(userId, ct);
 			return NoContent();
 		}
+
+		[HttpGet("unread-count")]
+		public async Task<ActionResult<object>> GetUnreadCount(CancellationToken ct)
+		{
+			var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+			if (!Guid.TryParse(userIdString, out var userId))
+			{
+				return Unauthorized();
+			}
+
+			var result = await _notificationsService.GetUserNotificationsAsync(userId, new GetNotificationsRequestDto { Page = 1, PageSize = 1 }, ct);
+			return Ok(new { unreadCount = result.UnreadCount });
+		}
 	}
 }
