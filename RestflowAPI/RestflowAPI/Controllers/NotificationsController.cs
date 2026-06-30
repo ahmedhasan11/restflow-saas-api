@@ -72,7 +72,6 @@ namespace RestflowAPI.Controllers
 			return Ok(new { unreadCount = result.UnreadCount });
 		}
 
-
 		[HttpPost("tokens")]
 		public async Task<IActionResult> RegisterDeviceToken([FromBody] RegisterDeviceTokenDto dto, CancellationToken ct)
 		{
@@ -83,6 +82,23 @@ namespace RestflowAPI.Controllers
 			}
 
 			await _notificationsService.RegisterDeviceTokenAsync(userId, dto, ct);
+			return NoContent();
+		}
+
+
+		[HttpDelete("tokens/{token}")]
+		public async Task<IActionResult> UnregisterDeviceToken(string token, CancellationToken ct)
+		{
+			var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+			if (!Guid.TryParse(userIdString, out var userId))
+			{
+				return Unauthorized();
+			}
+			if (string.IsNullOrWhiteSpace(token))
+			{
+				return BadRequest("Token is required.");
+			}
+			await _notificationsService.UnregisterDeviceTokenAsync(userId, token, ct);
 			return NoContent();
 		}
 	}

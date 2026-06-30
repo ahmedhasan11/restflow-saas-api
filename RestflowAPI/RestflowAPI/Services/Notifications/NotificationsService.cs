@@ -248,5 +248,12 @@ namespace RestflowAPI.Services.Notifications
 			await _deviceTokenRepository.UpsertAsync(deviceToken, ct);
 			await _unitOfWork.SaveChangesAsync(ct);
 		}
+
+		public async Task UnregisterDeviceTokenAsync(Guid userId, string token, CancellationToken ct)
+		{
+			var tenantId = _tenantService.TenantId ?? throw new UnauthorizedException("Tenant required");
+			await _deviceTokenRepository.RemoveByTokenAsync(token, userId, tenantId, ct);
+			await _unitOfWork.SaveChangesAsync(ct);
+		}
 	}
 }

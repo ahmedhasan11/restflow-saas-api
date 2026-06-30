@@ -45,12 +45,22 @@ namespace RestflowAPI.Repository.Notifications
 				.Where(x => userIds.Contains(x.UserId) && x.TenantId == tenantId)
 				.ToListAsync(ct);
 		}
-		public async Task RemoveByTokenAsync(string token, CancellationToken ct)
+		public async Task RemoveByTokenAsync(string token, Guid? userId, Guid? tenantId, CancellationToken ct)
 		{
 			// Use IgnoreQueryFilters so we can find and remove the token regardless of query filters
-			var existing = await _db.DeviceTokens
-				.IgnoreQueryFilters()
-				.FirstOrDefaultAsync(x => x.Token == token, ct);
+			var query = _db.DeviceTokens.IgnoreQueryFilters().AsQueryable();
+
+			if (userId.HasValue)
+			{
+				query = query.Where(x => x.UserId == userId.Value);
+			}
+
+			if (tenantId.HasValue)
+			{
+				query = query.Where(x => x.TenantId == tenantId.Value);
+			}
+
+			var existing = await query.FirstOrDefaultAsync(x => x.Token == token, ct);
 
 			if (existing != null)
 			{

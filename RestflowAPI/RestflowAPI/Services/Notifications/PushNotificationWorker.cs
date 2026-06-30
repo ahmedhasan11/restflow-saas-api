@@ -80,7 +80,7 @@ namespace RestflowAPI.Services.Notifications
 					catch (FirebaseMessagingException ex) when (ex.MessagingErrorCode == MessagingErrorCode.Unregistered || ex.MessagingErrorCode == MessagingErrorCode.InvalidArgument)
 					{
 						_logger.LogWarning(ex, "Permanent FCM error ({ErrorCode}) for token {Token}. Removing token from database.", ex.MessagingErrorCode, tokenString);
-						await deviceTokenRepository.RemoveByTokenAsync(tokenString, stoppingToken);
+						await deviceTokenRepository.RemoveByTokenAsync(tokenString,null,null, stoppingToken);
 						await uow.SaveChangesAsync(stoppingToken);
 						break; // Permanent failure: stop retrying and move to next token
 					}
