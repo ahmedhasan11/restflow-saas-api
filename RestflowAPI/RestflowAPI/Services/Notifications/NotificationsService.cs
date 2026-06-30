@@ -98,9 +98,17 @@ namespace RestflowAPI.Services.Notifications
 		}
 		public async Task SendNewOrderAlertAsync(Order order, Guid tenantId, CancellationToken ct)
 		{
+			// Translate OrderType to Arabic
+			var orderTypeArabic = order.OrderType switch
+			{
+				OrderType.DineIn => "محلي",
+				OrderType.Takeaway => "سفري",
+				OrderType.Delivery => "توصيل",
+				_ => "غير محدد"
+			};
 			// Title & Body in Arabic as per SRS
 			var title = "طلب جديد";
-			var body = $"طلب جديد رقم #{order.OrderNumber} مضاف حالياً بحالة معلق.";
+			var body = $"طلب جديد رقم #{order.OrderNumber} مضاف حالياً بحالة معلق. نوع الطلب: {orderTypeArabic}.";
 
 			await CreateAndSaveNotificationsForAudienceAsync(tenantId, NotificationType.NewOrder, title, body,
 					"ImportantAlerts", isOperationalOnly: true, ct);
@@ -227,7 +235,6 @@ namespace RestflowAPI.Services.Notifications
 			}
 			return inAppNotifications && categoryNotifications;
 		}
-
 		public async Task RegisterDeviceTokenAsync(Guid userId, RegisterDeviceTokenDto dto, CancellationToken ct)
 		{
 			var result = await _registerDeviceTokenValidator.ValidateAsync(dto, ct);
@@ -248,7 +255,6 @@ namespace RestflowAPI.Services.Notifications
 			await _deviceTokenRepository.UpsertAsync(deviceToken, ct);
 			await _unitOfWork.SaveChangesAsync(ct);
 		}
-
 		public async Task UnregisterDeviceTokenAsync(Guid userId, string token, CancellationToken ct)
 		{
 			var tenantId = _tenantService.TenantId ?? throw new UnauthorizedException("Tenant required");
