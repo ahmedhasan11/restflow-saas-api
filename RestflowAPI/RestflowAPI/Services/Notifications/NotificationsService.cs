@@ -202,6 +202,19 @@ namespace RestflowAPI.Services.Notifications
 			{
 				await _notificationsRepository.AddRangeAsync(notificationsToCreate, ct);
 				await _unitOfWork.SaveChangesAsync(ct);
+
+				foreach (var notif in notificationsToCreate)
+				{
+					var pushMsg = new PushNotificationMessage
+					{
+						NotificationId = notif.Id,
+						UserId = notif.UserId,
+						TenantId = notif.TenantId,
+						Title = notif.Title,
+						Body = notif.Body
+					};
+					await _channel.Writer.WriteAsync(pushMsg, ct);
+				}
 			}
 		}
 		private bool IsNotificationEnabled(ApplicationUser user, string toggleName)
