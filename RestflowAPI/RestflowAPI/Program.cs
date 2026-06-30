@@ -136,6 +136,10 @@ namespace RestflowAPI
 			builder.Services.AddScoped<IDeviceTokenRepository, DeviceTokenRepository>();
 
 			builder.Services.AddSingleton<IFcmPushService, FcmPushService>();
+
+			builder.Services.AddSingleton(System.Threading.Channels.Channel.CreateUnbounded<PushNotificationMessage>());
+
+			builder.Services.AddHostedService<PushNotificationWorker>();
 			#endregion
 
 			#region Fluent Validation Configuration
