@@ -58,6 +58,5 @@ namespace RestflowAPI.Repository.Notifications
 			}
 		}
 
-
 	}
 }
