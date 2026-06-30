@@ -30,8 +30,6 @@ namespace RestflowAPI.Data.Configurations
 				.HasForeignKey(x => x.UserId)
 				.OnDelete(DeleteBehavior.Restrict);
 
-			builder.HasQueryFilter(x => x.DeletedAt == null);
-
 			// Index for fast unread counts/queries
 			builder.HasIndex(x => new { x.TenantId, x.UserId, x.ReadAt });
 		}
