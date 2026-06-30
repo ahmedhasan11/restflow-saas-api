@@ -12,6 +12,7 @@ using RestflowAPI.Repository.Interfaces.Notifications;
 using RestflowAPI.Repository.Notifications;
 using RestflowAPI.ServiceInterfaces.Notifications;
 using RestflowAPI.ServiceInterfaces.Tenants;
+using System.Threading.Channels;
 
 namespace RestflowAPI.Services.Notifications
 {
@@ -23,9 +24,14 @@ namespace RestflowAPI.Services.Notifications
 		private readonly IUnitOfWork _unitOfWork;
 		private readonly ILogger<NotificationsService> _logger;
 		private readonly IValidator<GetNotificationsRequestDto> _validator;
+		private readonly IValidator<RegisterDeviceTokenDto> _registerDeviceTokenValidator;
+		private readonly IDeviceTokenRepository _deviceTokenRepository;
+		private readonly Channel<PushNotificationMessage> _channel;
 		public NotificationsService(INotificationsRepository notificationsRepository, ApplicationDbContext db,
 			ICurrentTenantService tenantService, IUnitOfWork unitOfWork
-			, ILogger<NotificationsService> logger, IValidator<GetNotificationsRequestDto> validator)
+			, ILogger<NotificationsService> logger,
+			IValidator<GetNotificationsRequestDto> validator, IDeviceTokenRepository deviceTokenRepository,
+			Channel<PushNotificationMessage> channel, IValidator<RegisterDeviceTokenDto> registerDeviceTokenValidator)
 		{
 			_notificationsRepository = notificationsRepository;
 			_db = db;
@@ -33,6 +39,9 @@ namespace RestflowAPI.Services.Notifications
 			_unitOfWork = unitOfWork;
 			_logger = logger;
 			_validator = validator;
+			_deviceTokenRepository = deviceTokenRepository;
+			_channel = channel;
+			_registerDeviceTokenValidator = registerDeviceTokenValidator;
 		}
 		public async Task<NotificationListResponseDto> GetUserNotificationsAsync(Guid userId, GetNotificationsRequestDto query, CancellationToken ct)
 		{
@@ -217,6 +226,27 @@ namespace RestflowAPI.Services.Notifications
 				}
 			}
 			return inAppNotifications && categoryNotifications;
+		}
+
+		public async Task RegisterDeviceTokenAsync(Guid userId, RegisterDeviceTokenDto dto, CancellationToken ct)
+		{
+			var result = await _registerDeviceTokenValidator.ValidateAsync(dto, ct);
+			if (!result.IsValid)
+			{
+				throw new AppValidationException(result.Errors.Select(e => e.ErrorMessage));
+			}
+			var tenantId = _tenantService.TenantId ?? throw new UnauthorizedException("Tenant required");
+
+			var deviceToken = new DeviceToken
+			{
+				TenantId = tenantId,
+				UserId = userId,
+				Token = dto.Token,
+				DeviceType = dto.DeviceType
+			};
+
+			await _deviceTokenRepository.UpsertAsync(deviceToken, ct);
+			await _unitOfWork.SaveChangesAsync(ct);
 		}
 	}
 }

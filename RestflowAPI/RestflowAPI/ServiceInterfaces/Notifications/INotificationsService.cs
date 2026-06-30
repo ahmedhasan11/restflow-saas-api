@@ -11,5 +11,7 @@ namespace RestflowAPI.ServiceInterfaces.Notifications
 		Task<NotificationListResponseDto> GetUserNotificationsAsync(Guid userId, GetNotificationsRequestDto query, CancellationToken ct);
 		Task MarkAsReadAsync(Guid notificationId, Guid userId, CancellationToken ct);
 		Task MarkAllAsReadAsync(Guid userId, CancellationToken ct);
+
+		Task RegisterDeviceTokenAsync(Guid userId, RegisterDeviceTokenDto dto, CancellationToken ct);
 	}
 }

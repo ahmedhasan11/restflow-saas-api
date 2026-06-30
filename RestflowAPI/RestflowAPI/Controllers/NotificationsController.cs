@@ -71,5 +71,19 @@ namespace RestflowAPI.Controllers
 			var result = await _notificationsService.GetUserNotificationsAsync(userId, new GetNotificationsRequestDto { Page = 1, PageSize = 1 }, ct);
 			return Ok(new { unreadCount = result.UnreadCount });
 		}
+
+
+		[HttpPost("tokens")]
+		public async Task<IActionResult> RegisterDeviceToken([FromBody] RegisterDeviceTokenDto dto, CancellationToken ct)
+		{
+			var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+			if (!Guid.TryParse(userIdString, out var userId))
+			{
+				return Unauthorized();
+			}
+
+			await _notificationsService.RegisterDeviceTokenAsync(userId, dto, ct);
+			return NoContent();
+		}
 	}
 }
