@@ -50,6 +50,10 @@ using RestflowAPI.ServiceInterfaces.Reports;
 using RestflowAPI.Services.Reports;
 using RestflowAPI.Repository.Interfaces.Reports;
 using RestflowAPI.Repository.Reports;
+using RestflowAPI.ServiceInterfaces.AI;
+using RestflowAPI.Services.AI;
+using RestflowAPI.Repository.AI;
+using RestflowAPI.Repository.Interfaces.AI;
 
 
 namespace RestflowAPI
@@ -125,12 +129,40 @@ namespace RestflowAPI
 
 			builder.Services.AddScoped<IReportsService, ReportsService>();
 			builder.Services.AddScoped<IReportsRepository, ReportsRepository>();
-			#endregion
 
-			#region Fluent Validation Configuration
-			//Add Fluent Validations
-			//builder.Services.AddFluentValidationAutoValidation();
-			builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+            builder.Services.Configure<GeminiSettings>(
+    builder.Configuration.GetSection("Gemini"));
+
+            builder.Services.AddHttpClient<ILLMService, GeminiService>();
+
+            builder.Services.AddScoped<SchemaContextBuilder>();
+
+            builder.Services.AddScoped<PromptBuilder>();
+
+            builder.Services.AddScoped<ISqlValidationService, SqlValidationService>();
+
+            builder.Services.AddScoped<IDynamicQueryRepository, DynamicQueryRepository>();
+
+            builder.Services.AddScoped<IResponseSynthesisService, ResponseSynthesisService>();
+
+            builder.Services.AddScoped<AnswerPromptBuilder>();
+
+            builder.Services.AddScoped<IAIChatService, AIChatService>();
+
+            builder.Services.AddScoped<IDashboardPromptBuilder, DashboardPromptBuilder>();
+
+            builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
+
+            builder.Services.AddScoped<IDashboardInsightsService, DashboardInsightsService>();
+            builder.Services.AddScoped<ISqlGenerationService, SqlGenerationService>();
+            builder.Services.AddScoped<GeminiService>();
+
+            #endregion
+
+            #region Fluent Validation Configuration
+            //Add Fluent Validations
+            //builder.Services.AddFluentValidationAutoValidation();
+            builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 			#endregion
 			#region DbContext Configuration with Identity
 
