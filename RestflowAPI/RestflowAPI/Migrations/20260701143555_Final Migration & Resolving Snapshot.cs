@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace RestflowAPI.Migrations
 {
     /// <inheritdoc />
-    public partial class Db : Migration
+    public partial class FinalMigrationResolvingSnapshot : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

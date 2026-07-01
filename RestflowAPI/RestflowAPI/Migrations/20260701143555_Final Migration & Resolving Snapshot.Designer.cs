@@ -12,8 +12,8 @@ using RestflowAPI.Data;
 namespace RestflowAPI.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260630170841_Db")]
-    partial class Db
+    [Migration("20260701143555_Final Migration & Resolving Snapshot")]
+    partial class FinalMigrationResolvingSnapshot
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
