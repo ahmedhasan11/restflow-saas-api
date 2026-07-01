@@ -1,9 +1,11 @@
 ﻿using RestflowAPI.Data.UnitOfWork;
 using RestflowAPI.DTOs.StockTransaction;
 using RestflowAPI.Entities;
+using RestflowAPI.Exceptions;
 using RestflowAPI.Repository.Interfaces.InventoryItem;
 using RestflowAPI.Repository.Interfaces.StockTransaction;
 using RestflowAPI.ServiceInterfaces.Customers;
+using RestflowAPI.ServiceInterfaces.Notifications;
 using RestflowAPI.ServiceInterfaces.StockTransaction;
 using RestflowAPI.ServiceInterfaces.Tenants;
 
@@ -15,17 +17,23 @@ namespace RestflowAPI.Services.StockTransaction
         private readonly IStockMovementRepository _movementRepo;
         private readonly ICurrentTenantService _tenant;
         private readonly IUnitOfWork _uow;
+		private readonly INotificationsService _notificationService;
+		private readonly ILogger<StockMovementService> _logger;
 
-        public StockMovementService(
+		public StockMovementService(
             IInventoryItemRepository inventoryRepo,
             IStockMovementRepository repo,
             ICurrentTenantService tenant,
-            IUnitOfWork uow)
+            IUnitOfWork uow,
+            INotificationsService notificationService,
+            ILogger<StockMovementService> logger)
         {
             _inventoryRepo = inventoryRepo;
             _tenant = tenant;
             _uow = uow;
             _movementRepo = repo;
+            _notificationService = notificationService;
+            _logger = logger;
         }
 
         public async Task CreateAsync(
@@ -34,7 +42,7 @@ namespace RestflowAPI.Services.StockTransaction
     CancellationToken cancellationToken)
         {
             var tenantId = _tenant.TenantId
-                ?? throw new Exception("Tenant is required");
+                ?? throw new UnauthorizedException("Tenant is required");
 
             var item = await _inventoryRepo.GetByIdAsync(
                 inventoryItemId,
@@ -88,16 +96,34 @@ namespace RestflowAPI.Services.StockTransaction
                 cancellationToken);
 
             await _uow.SaveChangesAsync(cancellationToken);
-        }
+
+
+			// FR-01 & FR-02: Stock alerts after manual stock adjustment
+			try
+			{
+				if (item.CurrentQuantity == 0)
+				{
+					await _notificationService.SendOutOfStockAlertAsync(item, tenantId, cancellationToken);
+				}
+				else if (item.CurrentQuantity <= item.MinimumQuantity)
+				{
+					await _notificationService.SendLowStockAlertAsync(item, tenantId, cancellationToken);
+				}
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Failed to send stock alerts for item {ItemId} after manual adjustment", item.Id);
+			}
+		}
 
         public async Task<List<StockMovementDto>> GetHistoryAsync(
     Guid inventoryItemId,
     CancellationToken cancellationToken)
         {
             var tenantId = _tenant.TenantId
-                ?? throw new Exception("Tenant is required");
+                ?? throw new UnauthorizedException("Tenant is required");
 
-            return await _movementRepo.GetByInventoryItemIdAsync(tenantId,inventoryItemId,cancellationToken);
+            return await _movementRepo.GetByInventoryItemIdAsync(tenantId, inventoryItemId, cancellationToken);
         }
     }
 }

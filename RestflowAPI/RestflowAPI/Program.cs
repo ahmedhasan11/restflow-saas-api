@@ -7,53 +7,58 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using RestflowAPI.Data.UnitOfWork;
 using RestflowAPI.Repository.Auth;
+using RestflowAPI.Repository.Customers;
+using RestflowAPI.Repository.Employees;
 using RestflowAPI.Repository.Interfaces.Auth;
+using RestflowAPI.Repository.Interfaces.Customers;
+using RestflowAPI.Repository.Interfaces.Employees;
+using RestflowAPI.Repository.Interfaces.InventoryItem;
+using RestflowAPI.Repository.Interfaces.Notifications;
+using RestflowAPI.Repository.Interfaces.Orders;
+using RestflowAPI.Repository.Interfaces.Reports;
+using RestflowAPI.Repository.Interfaces.Settings;
+using RestflowAPI.Repository.Interfaces.StockTransaction;
 using RestflowAPI.Repository.Interfaces.Tenants;
+using RestflowAPI.Repository.InventoryItem;
+using RestflowAPI.Repository.Notifications;
+using RestflowAPI.Repository.Orders;
+using RestflowAPI.Repository.Reports;
+using RestflowAPI.Repository.Settings;
+using RestflowAPI.Repository.StockTransaction;
 using RestflowAPI.Repository.Tenants;
 using RestflowAPI.ServiceInterfaces.Auth;
-using RestflowAPI.ServiceInterfaces.ImenuCategory;
-using RestflowAPI.ServiceInterfaces.ProductIngredient;
-using RestflowAPI.ServiceInterfaces.Tenants;
-using RestflowAPI.Services.Auth;
-using RestflowAPI.Services.Tenants;
-using RestflowAPI.Settings;
-using System.Text;
-using RestflowAPI.swagger;
-using System.Runtime.InteropServices;
-using RestflowAPI.Repository.Interfaces.Customers;
-using RestflowAPI.Repository.Customers;
 using RestflowAPI.ServiceInterfaces.Customers;
-using RestflowAPI.Services.Customers;
-using RestflowAPI.Repository.Interfaces.Settings;
-using RestflowAPI.Repository.Settings;
-using RestflowAPI.ServiceInterfaces.Settings;
-using RestflowAPI.Services.Settings;
-using RestflowAPI.Repository.Interfaces.InventoryItem;
-using RestflowAPI.Repository.InventoryItem;
+using RestflowAPI.ServiceInterfaces.Employees;
+using RestflowAPI.ServiceInterfaces.ImenuCategory;
 using RestflowAPI.ServiceInterfaces.InventoryCategory;
 using RestflowAPI.ServiceInterfaces.InventoryItems;
-using RestflowAPI.Services.InventoryItems;
-using RestflowAPI.Services;
-using RestflowAPI.Repository.Interfaces.StockTransaction;
-using RestflowAPI.ServiceInterfaces.StockTransaction;
-using RestflowAPI.Services.StockTransaction;
-using RestflowAPI.Repository.StockTransaction;
-using RestflowAPI.Repository.Interfaces.Orders;
-using RestflowAPI.Repository.Orders;
+using RestflowAPI.ServiceInterfaces.Notifications;
 using RestflowAPI.ServiceInterfaces.Orders;
-using RestflowAPI.Services.Orders;
-using RestflowAPI.ServiceInterfaces.Employees;
-using RestflowAPI.Services.Employees;
-using RestflowAPI.Repository.Interfaces.Employees;
-using RestflowAPI.Repository.Employees;
+using RestflowAPI.ServiceInterfaces.ProductIngredient;
 using RestflowAPI.ServiceInterfaces.Reports;
+using RestflowAPI.ServiceInterfaces.Settings;
+using RestflowAPI.ServiceInterfaces.StockTransaction;
+using RestflowAPI.ServiceInterfaces.Tenants;
+using RestflowAPI.Services;
+using RestflowAPI.Services.Auth;
+using RestflowAPI.Services.Customers;
+using RestflowAPI.Services.Employees;
+using RestflowAPI.Services.InventoryItems;
+using RestflowAPI.Services.Notifications;
+using RestflowAPI.Services.Orders;
 using RestflowAPI.Services.Reports;
-using RestflowAPI.Repository.Interfaces.Reports;
-using RestflowAPI.Repository.Reports;
+using RestflowAPI.Services.Settings;
+using RestflowAPI.Services.StockTransaction;
+using RestflowAPI.Services.Tenants;
+using RestflowAPI.Settings;
+using RestflowAPI.swagger;
+using System.Runtime.InteropServices;
+using System.Text;
 using RestflowAPI.ServiceInterfaces.AI;
 using RestflowAPI.Services.AI;
 using RestflowAPI.Repository.AI;
 using RestflowAPI.Repository.Interfaces.AI;
+
 
 
 namespace RestflowAPI
@@ -129,6 +134,18 @@ namespace RestflowAPI
 
 			builder.Services.AddScoped<IReportsService, ReportsService>();
 			builder.Services.AddScoped<IReportsRepository, ReportsRepository>();
+
+
+			builder.Services.AddScoped<INotificationsRepository, NotificationsRepository>();
+			builder.Services.AddScoped<INotificationsService, NotificationsService>();
+
+			builder.Services.AddScoped<IDeviceTokenRepository, DeviceTokenRepository>();
+
+			builder.Services.AddSingleton<IFcmPushService, FcmPushService>();
+
+			builder.Services.AddSingleton(System.Threading.Channels.Channel.CreateUnbounded<PushNotificationMessage>());
+
+			builder.Services.AddHostedService<PushNotificationWorker>();
 
             builder.Services.Configure<GeminiSettings>(
     builder.Configuration.GetSection("Gemini"));

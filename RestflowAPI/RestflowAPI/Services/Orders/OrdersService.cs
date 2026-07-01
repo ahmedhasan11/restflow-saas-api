@@ -3,11 +3,14 @@ using RestflowAPI.Data.UnitOfWork;
 using RestflowAPI.DTOs.Orders;
 using RestflowAPI.Entities;
 using RestflowAPI.Enums;
+using RestflowAPI.Exceptions;
 using RestflowAPI.Repository.Interfaces.Orders;
 using RestflowAPI.Repository.Interfaces.StockTransaction;
 using RestflowAPI.Repository.Orders;
+using RestflowAPI.ServiceInterfaces.Notifications;
 using RestflowAPI.ServiceInterfaces.Orders;
 using RestflowAPI.ServiceInterfaces.Tenants;
+using RestflowAPI.Services.Notifications;
 
 namespace RestflowAPI.Services.Orders
 {
@@ -20,6 +23,7 @@ namespace RestflowAPI.Services.Orders
         private readonly IProductIngredientRepository _productingredientrepo;
         private readonly ILogger<OrdersService> _logger;
         private readonly IUnitOfWork _uow;
+        private readonly INotificationsService _notificationsService;
 
         public OrdersService(
             IOrderRepository orderrepo,
@@ -28,7 +32,8 @@ namespace RestflowAPI.Services.Orders
             IProductRepository productrepo,
             IStockMovementRepository stockmovementrepo,
             IProductIngredientRepository productingredientrepo,
-            ILogger<OrdersService> logger
+            ILogger<OrdersService> logger,
+            INotificationsService notificationsService
             )
         {
             _orderrepo = orderrepo;
@@ -38,6 +43,7 @@ namespace RestflowAPI.Services.Orders
             _stockmovementrepo = stockmovementrepo;
             _productingredientrepo = productingredientrepo;
             _logger = logger;
+            _notificationsService = notificationsService;
         }
         public async Task<Guid> CreateOrderAsync(
     CreateOrderDto dto,
@@ -45,7 +51,7 @@ namespace RestflowAPI.Services.Orders
         {
             var tenantId =
                 _tenant.TenantId
-                ?? throw new Exception("Tenant required");
+                ?? throw new UnauthorizedException("Tenant required");
 
             if (dto.Items == null || !dto.Items.Any())
                 throw new Exception("Order must have at least one item");
@@ -112,7 +118,17 @@ namespace RestflowAPI.Services.Orders
             {
                 await _uow.SaveChangesAsync(cancellationToken);
 
-                return order.Id;
+				// FR-03: New Order notification
+				try
+				{
+					await _notificationsService.SendNewOrderAlertAsync(order, tenantId, cancellationToken);
+				}
+				catch (Exception ex)
+				{
+					_logger.LogError(ex, "Failed to send new order notification for {OrderId}", order.Id);
+					// Don't rethrow — notification failure must not break order creation
+				}
+				return order.Id;
             }
             catch (DbUpdateException ex)
             {
@@ -120,7 +136,7 @@ namespace RestflowAPI.Services.Orders
                 var innerException = ex.InnerException?.Message;
                 // سجل الـ inner exception
                 _logger.LogError(ex, "Database error: {InnerException}", innerException);
-                throw new Exception($"Database error: {innerException}", ex);
+                throw;
             }
 
         }
@@ -132,7 +148,7 @@ namespace RestflowAPI.Services.Orders
         {
             var tenantId =
                 _tenant.TenantId
-                ?? throw new Exception("Tenant required");
+                ?? throw new UnauthorizedException("Tenant required");
 
             var order =
                 await _orderrepo.GetWithItemsAsync(
@@ -167,7 +183,7 @@ namespace RestflowAPI.Services.Orders
             };
         }
 
-        private async Task CompleteOrderAsync(
+        private async Task<List<InventoryItem>> CompleteOrderAsync(
     Order order,
     Guid tenantId,
     CancellationToken cancellationToken)
@@ -208,7 +224,9 @@ namespace RestflowAPI.Services.Orders
                 }
             }
 
-            foreach (var orderItem in order.OrderItems)
+			var affectedItems = new List<InventoryItem>();
+
+			foreach (var orderItem in order.OrderItems)
             {
                 var productIngredients =
                     ingredients
@@ -225,7 +243,12 @@ namespace RestflowAPI.Services.Orders
                     ingredient.InventoryItem.CurrentQuantity
                         -= (decimal)requiredQty;
 
-                    await _stockmovementrepo.AddAsync(
+					if (!affectedItems.Any(x => x.Id == ingredient.InventoryItem.Id))
+					{
+						affectedItems.Add(ingredient.InventoryItem);
+					}
+
+					await _stockmovementrepo.AddAsync(
                         new StockMovement
                         {
                             Id = Guid.NewGuid(),
@@ -252,7 +275,10 @@ namespace RestflowAPI.Services.Orders
 
             order.OrderStatus =
                 OrderStatus.Completed;
-        }
+
+
+			return affectedItems;
+		}
 
         public async Task UpdateStatusAsync(
     Guid orderId,
@@ -261,7 +287,7 @@ namespace RestflowAPI.Services.Orders
         {
             var tenantId =
                 _tenant.TenantId
-                ?? throw new Exception("Tenant required");
+                ?? throw new UnauthorizedException("Tenant required");
 
             var order =
                 await _orderrepo.GetWithItemsAsync(
@@ -275,11 +301,14 @@ namespace RestflowAPI.Services.Orders
             if (order.OrderStatus != OrderStatus.Pending)
                 throw new Exception("Order is locked");
 
-            switch (dto.Status)
+			List<InventoryItem>? affectedItems = null;
+
+
+			switch (dto.Status)
             {
                 case OrderStatus.Completed:
 
-                    await CompleteOrderAsync(
+                    affectedItems = await CompleteOrderAsync(
                         order,
                         tenantId,
                         cancellationToken);
@@ -301,7 +330,31 @@ namespace RestflowAPI.Services.Orders
 
             await _uow.SaveChangesAsync(
                 cancellationToken);
-        }
+
+
+			// FR-01 & FR-02: Stock alerts triggered only after transaction successfully commits
+			if (affectedItems != null)
+			{
+				foreach (var item in affectedItems)
+				{
+					try
+					{
+						if (item.CurrentQuantity == 0)
+						{
+							await _notificationsService.SendOutOfStockAlertAsync(item, tenantId, cancellationToken);
+						}
+						else if (item.CurrentQuantity <= item.MinimumQuantity)
+						{
+							await _notificationsService.SendLowStockAlertAsync(item, tenantId, cancellationToken);
+						}
+					}
+					catch (Exception ex)
+					{
+						_logger.LogError(ex, "Failed to send stock alert for item {ItemId} after order completion", item.Id);
+					}
+				}
+			}
+		}
 
         public async Task UpdatePaymentStatusAsync(
     Guid orderId,
@@ -310,7 +363,7 @@ namespace RestflowAPI.Services.Orders
         {
             var tenantId =
                 _tenant.TenantId
-                ?? throw new Exception("Tenant required");
+                ?? throw new UnauthorizedException("Tenant required");
 
             var order =
                 await _orderrepo.GetByIdAsync(
@@ -343,7 +396,7 @@ namespace RestflowAPI.Services.Orders
         {
             var tenantId =
                 _tenant.TenantId
-                ?? throw new Exception("Tenant required");
+                ?? throw new UnauthorizedException("Tenant required");
 
             return await _orderrepo.GetOrdersAsync(
                 tenantId,
