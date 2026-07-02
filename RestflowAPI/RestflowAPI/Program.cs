@@ -174,12 +174,22 @@ namespace RestflowAPI
             builder.Services.AddScoped<ISqlGenerationService, SqlGenerationService>();
             builder.Services.AddScoped<GeminiService>();
 
-            #endregion
-
-            #region Fluent Validation Configuration
-            //Add Fluent Validations
-            //builder.Services.AddFluentValidationAutoValidation();
-            builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+			#endregion
+			#region CORS Configuration
+			builder.Services.AddCors(options =>
+			{
+				options.AddPolicy("AllowAll", policy =>
+				{
+					policy.AllowAnyOrigin()
+						  .AllowAnyMethod()
+						  .AllowAnyHeader();
+				});
+			});
+			#endregion
+			#region Fluent Validation Configuration
+			//Add Fluent Validations
+			//builder.Services.AddFluentValidationAutoValidation();
+			builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 			#endregion
 			#region DbContext Configuration with Identity
 
@@ -286,16 +296,16 @@ namespace RestflowAPI
 			app.UseMiddleware<RestflowAPI.Middlewares.GlobalExceptionMiddleware>();
 
 			// Configure the HTTP request pipeline.
-			if (app.Environment.IsDevelopment())
-            {
+			//if (app.Environment.IsDevelopment())
+   //         {
                 app.UseSwagger();
                 app.UseSwaggerUI();
-            }
+            //}
 
             app.UseHttpsRedirection();
 
 			app.UseStaticFiles();
-
+			app.UseCors("AllowAll");
 			app.UseAuthentication();
 			app.UseAuthorization();
 
